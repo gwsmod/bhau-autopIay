@@ -1850,7 +1850,7 @@
       </div>
       <video id="rdScanVideo" autoplay muted playsinline></video>
       <div class="rdScanBox"><div class="rdScanLine"></div></div>
-      <div class="rdScanHint" id="rdScanHint">🔎 Looking only for RD account number starting with 6058…</div>
+      <div class="rdScanHint" id="rdScanHint">🔎 Looking only for RD account number starting with 6059…</div>
       <button type="button" class="rdScanStop" id="rdScanStop">✕ Stop Scanner</button>
       <canvas id="rdScanCanvas" hidden></canvas>
     `;
@@ -1877,17 +1877,17 @@
 
     for(let i=0;i<=normalized.length-11;i++){
       const part=normalized.slice(i,i+11);
-      if(/^6058\d{7}$/.test(part) && part!==blocked) return part;
+      if(/^6059\d{7}$/.test(part) && part!==blocked) return part;
     }
 
     const spaced=String(text)
       .replace(/[Oo]/g,'0').replace(/[IiLl]/g,'1').replace(/[Zz]/g,'2')
-      .replace(/[Ss]/g,'5').replace(/[Gg]/g,'6').replace(/[Bb]/g,'8');
+      .replace(/[Ss]/g,'5').replace(/[Gg]/g,'6').replace(/[Bb]/g,'9');
 
-    const m=spaced.match(/6\s*0\s*5\s*8(?:\s*\d){7}/);
+    const m=spaced.match(/6\s*0\s*5\s*9(?:\s*\d){7}/);
     if(m){
       const n=m[0].replace(/\D/g,'');
-      if(/^6058\d{7}$/.test(n) && n!==blocked) return n;
+      if(/^6059\d{7}$/.test(n) && n!==blocked) return n;
     }
 
     return '';
@@ -1954,7 +1954,7 @@
 
         return;
       }else{
-        rdScanStatus('🔎 Looking for RD account number starting with 6058…');
+        rdScanStatus('🔎 Looking for RD account number starting with 6059…');
       }
     }catch(err){
       console.error('RD OCR error:',err);
@@ -2007,7 +2007,7 @@
       rdLastNumber='';
       rdCaptured=false;
 
-      rdScanStatus('🔎 Looking for RD account number starting with 6058…');
+      rdScanStatus('🔎 Looking for RD account number starting with 6059…');
       rdScanLoop();
     }catch(err){
       console.error('Camera error:',err);
