@@ -2165,8 +2165,52 @@
     }catch(e){ showToast('Network error: '+e.message,'error'); return false; }
   }
 
+  // ─── LIVE BALANCE SYNC ───────────────────────────────────────────────────
+  // Uses the existing real balance endpoint. Only one request can run at a time,
+  // and the UI is touched only when the value actually changes.
+  let balanceRequestInFlight=false;
+  let liveBalanceTimer=null;
+  let liveBalanceLastValue=null;
+
+  function applyLiveBalance(value){
+    const bal=Number(value);
+    if(!Number.isFinite(bal)) return;
+    const changed=liveBalanceLastValue===null || Math.abs(liveBalanceLastValue-bal)>0.000001;
+    S.balance=bal;
+    if(changed){
+      liveBalanceLastValue=bal;
+      document.querySelectorAll('#balanceDisplay,[data-live-balance]').forEach(el=>{
+        const text=bal.toFixed(2);
+        if(el.textContent!==text) el.textContent=text;
+      });
+      window.dispatchEvent(new CustomEvent('balancechange',{detail:{balance:bal}}));
+      try{ localStorage.setItem('bhau_live_balance',JSON.stringify({balance:bal,at:Date.now()})); }catch(_){}
+    }
+  }
+
+  function startLiveBalanceSync(){
+    if(liveBalanceTimer || !S.isLoggedIn || !S.token) return;
+    const sync=()=>{ if(S.isLoggedIn && S.token && !balanceRequestInFlight) void getBalance(); };
+    sync();
+    liveBalanceTimer=setInterval(sync,3000);
+  }
+
+  function stopLiveBalanceSync(){
+    if(liveBalanceTimer){ clearInterval(liveBalanceTimer); liveBalanceTimer=null; }
+  }
+
+  document.addEventListener('visibilitychange',()=>{
+    if(!document.hidden && S.isLoggedIn && S.token && !balanceRequestInFlight) void getBalance();
+  });
+  window.addEventListener('storage',e=>{
+    if(e.key==='bhau_live_balance' && e.newValue){
+      try{ const d=JSON.parse(e.newValue); if(Number.isFinite(Number(d.balance))) applyLiveBalance(Number(d.balance)); }catch(_){}
+    }
+  });
+
   async function getBalance(){
-    if(!S.token) return;
+    if(!S.token || balanceRequestInFlight) return null;
+    balanceRequestInFlight=true;
     try{
       const payload={channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 13; 22087RA4DI)',packageId:2,packageInfo:'com.resulta.checka',versionCode:'999',isDemo:1,count:1,betAmount:10};
       const r=await fetch('https://api.bh2255.xyz/app/user/getBalanceV2?gameType=BigTurnTable',{
@@ -2177,14 +2221,14 @@
       if(r.status===200){
         const d=await r.json();
         if(d.code===0){
-          const bal=d.data?.totalBalance||0;
-          S.balance=bal;
-          balanceDisplay.textContent=bal.toFixed(2);
+          const bal=Number(d.data?.totalBalance||0);
+          applyLiveBalance(bal);
           return bal;
         }
       }
       return null;
     }catch(_){ return null; }
+    finally{ balanceRequestInFlight=false; }
   }
 
   // ─── REFERRAL ─────────────────────────────────────────────────────────────
@@ -2863,6 +2907,7 @@
 
   // ─── LOGOUT / EXIT ──────────────────────────────────────────────────────
   function doLogout(){
+    stopLiveBalanceSync(); liveBalanceLastValue=null;
     S.token=null; S.isLoggedIn=false; S.phone=null; S.balance=0;
     S.selectedAmount=200; S.selectedPayment=null; S.isAutoClaiming=false;
     S.depositAmounts=[]; S.paymentMethods=[]; S.withdrawCards=[]; S.cardList=[]; S.selectedCard=null; S.referralHistoryCache=null;
@@ -2885,11 +2930,14 @@
   logoutNoBtn.addEventListener('click',hideLogoutConfirmation);
 
   // ─── LOGIN HANDLER ──────────────────────────────────────────────────────
+  let loginInProgress=false;
   async function handleLogin(e){
     e.preventDefault();
+    if(loginInProgress) return;
     const phone=phoneInput.value.trim();
     const pass='Sanju2005';
-    if(phone.length!==10){ showToast('Enter valid 10-digit phone number.','warning'); return; }
+    if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit phone number.','warning'); return; }
+    loginInProgress=true;
     loginBtn.disabled=true; loginBtn.textContent='⏳ Logging...';
     const ok=await login(phone,pass);
     if(ok){
@@ -2903,11 +2951,13 @@
       // Load non-critical dashboard data in the background so it never delays login.
       void trackProfitEvent('LOGIN',phone,0);
       void getBalance();
+      startLiveBalanceSync();
       void getReferralHistory(1);
       void updateNumberDisplay();
       void renderWithdraw();
     }
     loginBtn.disabled=false; loginBtn.textContent='🔑  LOGIN & LOAD  →';
+    loginInProgress=false;
   }
 
   // ─── AUTOPASTE ──────────────────────────────────────────────────────────
@@ -2985,8 +3035,7 @@
       const panel=document.getElementById('dynamicContent');
       if(panel){
         panel.classList.remove('panel-enter');
-        void panel.offsetWidth;
-        panel.classList.add('panel-enter');
+        requestAnimationFrame(()=>panel.classList.add('panel-enter'));
       }
     });
   });
@@ -3043,7 +3092,7 @@
   let autoLoginStarted=false;
   phoneInput.addEventListener('input',function(){
     this.value=this.value.replace(/\D/g,'').slice(0,10);
-    if(this.value.length===10 && !autoLoginStarted){
+    if(this.value.length===10 && !autoLoginStarted && !loginInProgress){
       autoLoginStarted=true;
       handleLogin({preventDefault(){}}).finally(()=>{ autoLoginStarted=false; });
     }
@@ -3061,6 +3110,7 @@
     loginSection.style.display='none'; dashboard.style.display='block';
     userPhoneDisplay.textContent=S.phone||'8597630383';
     updateNumberDisplay();
+    startLiveBalanceSync();
     getBalance().then(()=>{ closePanel(); getReferralHistory(1); renderWithdraw(); });
   }else{
     updateNumberDisplay();
