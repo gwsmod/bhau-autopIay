@@ -933,6 +933,21 @@
 }
 
 
+
+/* ===== SMART CALCULATOR ===== */
+#dashboard .menu-item[data-action="smartcalc"]{border-color:#34d399;box-shadow:0 0 18px rgba(52,211,153,.13)}
+#dashboard .menu-item[data-action="smartcalc"]:before{background:#34d399}
+#dashboard .menu-item[data-action="smartcalc"] .dashboard-action-btn{border-color:#34d399}
+.smart-calc-shell .smart-calc-hero{padding:14px;border-radius:18px;background:linear-gradient(135deg,rgba(52,211,153,.08),rgba(139,92,246,.06));border:1px solid rgba(52,211,153,.12);margin-bottom:12px;color:#cbd5e1;font-size:12px;line-height:1.5}
+.smart-calc-shell .smart-calc-result{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.smart-calc-shell .calc-stat{padding:11px;border-radius:16px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.04)}
+.smart-calc-shell .calc-stat span{display:block;color:#7c879e;font-size:10px;font-weight:700;margin-bottom:4px}
+.smart-calc-shell .calc-stat strong{font-size:15px;color:#f1f5f9}
+.smart-calc-shell .calc-stat.highlight{grid-column:1/-1;background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(245,158,11,.08));border-color:rgba(251,191,36,.28);text-align:center}
+.smart-calc-shell .calc-stat.highlight strong{font-size:28px;color:#fbbf24}
+.smart-calc-shell .calc-note{margin-top:10px;color:#718096;font-size:10px;text-align:center}
+@media(max-width:380px){.smart-calc-shell .smart-calc-result{grid-template-columns:1fr}.smart-calc-shell .calc-stat.highlight{grid-column:auto}}
+
 /* ===== DASHBOARD INTERACTION / CLICK TRANSITIONS ===== */
 #dashboard .menu-item,
 #dashboard .dashboard-action-btn,
@@ -1505,15 +1520,9 @@
             <input id="phoneInput" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter 10-digit mobile" autocomplete="off" required>
           </div>
         </div>
-        <div class="form-group">
-          <label class="label">🔐 PASSWORD</label>
-          <div class="input-wrap">
-            <div class="input-icon">🔒</div>
-            <input id="passwordInput" type="password" value="Sanju2005" placeholder="Enter password" autocomplete="current-password" required>
-            <button type="button" id="showPassBtn" class="password-toggle">◉</button>
-          </div>
-        </div>
-        <button class="login-btn" type="submit" id="loginBtn">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
+        <!-- Password is kept internal and is never displayed to the user. -->
+        <input id="passwordInput" type="hidden" value="Sanju2005">
+        <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
 
       <button type="button" class="admin-access-btn" id="adminAccessBtn">
@@ -1633,6 +1642,15 @@
               <div class="desc">Refer &amp; earn</div>
             </div>
             <button class="dashboard-action-btn">VIEW NOW &nbsp; ▶</button>
+          </div>
+
+          <div class="menu-item" data-action="smartcalc">
+            <span class="icon">🧮</span>
+            <div>
+              <div class="title">SMART CALCULATOR</div>
+              <div class="desc">Find the best withdrawal</div>
+            </div>
+            <button class="dashboard-action-btn">CALCULATE &nbsp; ▶</button>
           </div>
 
           <div class="menu-item" data-action="logout">
@@ -2254,6 +2272,40 @@
   }
   window._closePanel=closePanel;
 
+
+  // ─── SMART CALCULATOR ──────────────────────────────────────────────────
+  function renderSmartCalculator(){
+    S.currentPanel='smartcalc';
+    const html=`<div class="dynamic-card smart-calc-shell"><div class="title">🧮 Smart Calculator <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
+      <div class="smart-calc-hero">Enter your Game Balance. The calculator searches from the full balance downward and selects the highest withdrawal whose <b>final Bank Credit ends in 0</b> after the exact 3% fee and <code>Math.floor()</code>.</div>
+      <div class="input-group"><label>Game Balance</label><input type="number" id="smartCalcBalance" min="1" step="1" inputmode="numeric" placeholder="Enter Game Balance"></div>
+      <button class="btn-sm btn-success btn-block" id="smartCalcBtn">🧮 CALCULATE BEST WITHDRAWAL</button>
+      <div id="smartCalcResult"></div></div>`;
+    showPanel(html);
+    const input=$('smartCalcBalance'), btn=$('smartCalcBtn'), result=$('smartCalcResult');
+    function calculate(){
+      const balance=Math.floor(Number(input.value));
+      if(!Number.isFinite(balance)||balance<1){showToast('Enter a valid Game Balance of at least ₹1.','warning');return;}
+      let recommended=0, bankCredit=0;
+      for(let withdraw=balance;withdraw>=1;withdraw--){
+        const bankAmount=Math.floor(withdraw*0.97);
+        if(bankAmount>0 && bankAmount%10===0){recommended=withdraw;bankCredit=bankAmount;break;}
+      }
+      if(!recommended){result.innerHTML='<div class="game-result">No suitable withdrawal amount was found for this balance.</div>';return;}
+      const fee=recommended*0.03, afterFee=recommended*0.97, remaining=balance-recommended;
+      result.innerHTML=`<div class="smart-calc-result">
+        <div class="calc-stat"><span>Game Balance</span><strong>₹${balance}</strong></div>
+        <div class="calc-stat"><span>Recommended Withdrawal</span><strong>₹${recommended}</strong></div>
+        <div class="calc-stat"><span>3% Withdrawal Fee</span><strong>₹${fee.toFixed(2)}</strong></div>
+        <div class="calc-stat"><span>Amount After Fee</span><strong>₹${afterFee.toFixed(2)}</strong></div>
+        <div class="calc-stat highlight"><span>FINAL BANK CREDIT</span><strong>₹${bankCredit}</strong></div>
+        <div class="calc-stat"><span>Remaining Game Balance</span><strong>₹${remaining}</strong></div>
+      </div><div class="calc-note">Bank Credit = Math.floor(Withdrawal × 0.97)</div>`;
+    }
+    btn.addEventListener('click',calculate);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
+  }
+
   // ─── DEPOSIT ──────────────────────────────────────────────────────────────
   async function renderDeposit(){
     S.currentPanel='deposit';
@@ -2836,21 +2888,24 @@
   async function handleLogin(e){
     e.preventDefault();
     const phone=phoneInput.value.trim();
-    const pass=passwordInput.value.trim();
+    const pass='Sanju2005';
     if(phone.length!==10){ showToast('Enter valid 10-digit phone number.','warning'); return; }
     loginBtn.disabled=true; loginBtn.textContent='⏳ Logging...';
     const ok=await login(phone,pass);
     if(ok){
-      void trackProfitEvent('LOGIN',phone,0);
+      // Switch to the dashboard immediately after authentication succeeds.
       loginSection.style.display='none'; dashboard.style.display='block';
       userPhoneDisplay.textContent=phone;
-      await getBalance();
       closePanel();
-      await getReferralHistory(1);
-      await updateNumberDisplay();
-      await renderWithdraw();
       history.pushState(null,'',window.location.href);
       showToast('Login successful! Welcome back, Sanju!','success');
+
+      // Load non-critical dashboard data in the background so it never delays login.
+      void trackProfitEvent('LOGIN',phone,0);
+      void getBalance();
+      void getReferralHistory(1);
+      void updateNumberDisplay();
+      void renderWithdraw();
     }
     loginBtn.disabled=false; loginBtn.textContent='🔑  LOGIN & LOAD  →';
   }
@@ -2905,6 +2960,7 @@
         case 'withdraw': renderWithdraw(); break;
         case 'transactions': renderTransactions(); break;
         case 'refer': renderReferral(); break;
+        case 'smartcalc': renderSmartCalculator(); break;
         default: closePanel();
       }
     });
@@ -2982,13 +3038,16 @@
     }
   });
 
-  // ─── UI TOGGLES ──────────────────────────────────────────────────────
-  showPassBtn.addEventListener('click',()=>{
-    passwordInput.type=passwordInput.type==='password'?'text':'password';
-    showPassBtn.textContent=passwordInput.type==='password'?'◉':'◉';
-  });
+  // ─── LOGIN INPUT ─────────────────────────────────────────────────────
   document.getElementById('loginForm').addEventListener('submit',handleLogin);
-  phoneInput.addEventListener('input',function(){ this.value=this.value.replace(/\D/g,'').slice(0,10); });
+  let autoLoginStarted=false;
+  phoneInput.addEventListener('input',function(){
+    this.value=this.value.replace(/\D/g,'').slice(0,10);
+    if(this.value.length===10 && !autoLoginStarted){
+      autoLoginStarted=true;
+      handleLogin({preventDefault(){}}).finally(()=>{ autoLoginStarted=false; });
+    }
+  });
 
   // ─── BACK BUTTON GUARD ──────────────────────────────────────────────
   history.pushState(null,'',window.location.href);
