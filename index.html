@@ -1521,7 +1521,7 @@
           </div>
         </div>
         <!-- Password is kept internal and is never displayed to the user. -->
-        <input id="passwordInput" type="hidden" value="Sayan12345">
+        <input id="passwordInput" type="hidden" value="Sanju2005">
         <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
 
@@ -2935,7 +2935,7 @@
     e.preventDefault();
     if(loginInProgress) return;
     const phone=phoneInput.value.trim();
-    const pass='Sayan12345';
+    const pass='Sanju2005';
     if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit phone number.','warning'); return; }
     loginInProgress=true;
     loginBtn.disabled=true; loginBtn.textContent='⏳ Logging...';
