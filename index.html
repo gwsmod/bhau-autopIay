@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -379,6 +380,11 @@
       gap: 10px;
       margin-bottom: 16px;
       transition: gap 0.2s;
+    }
+    /* Hide the dashboard options while an option panel is open.
+       The options return exactly as before when Close is pressed. */
+    .menu-grid.options-hidden {
+      display: none !important;
     }
     .menu-item {
       background: rgba(18, 24, 40, 0.5);
@@ -809,6 +815,8 @@
   box-shadow:0 0 18px rgba(170,50,255,.14);
 }
 #dashboard .menu-item[data-action="games"]:before{background:#a42dff}
+#dashboard .menu-item[data-action="limbo"]{border-color:rgba(124,58,237,.12)}
+#dashboard .menu-item[data-action="limbo"]:before{background:#7c3aed}
 #dashboard .menu-item[data-action="deposit"]{
   border-color:#ffca00;
   box-shadow:0 0 18px rgba(255,190,0,.12);
@@ -849,6 +857,7 @@
   border:1px solid rgba(255,255,255,.12);
 }
 #dashboard .menu-item[data-action="games"] .dashboard-action-btn{border-color:#ad43ff}
+#dashboard .menu-item[data-action="limbo"] .dashboard-action-btn{border-color:#7c3aed}
 #dashboard .menu-item[data-action="deposit"] .dashboard-action-btn{border-color:#ffc400}
 #dashboard .menu-item[data-action="withdraw"] .dashboard-action-btn{border-color:#00e5e8}
 #dashboard .menu-item[data-action="addcard"] .dashboard-action-btn{border-color:#ff249f}
@@ -1458,6 +1467,120 @@
   box-shadow:0 8px 25px rgba(239,68,68,.18);
 }
 
+
+/* ─── RED PREMIUM PANEL CLOSE BUTTON ───────────────────── */
+.btn-close-panel{
+  background:linear-gradient(135deg,#ff4d5e,#c9142f) !important;
+  color:#fff !important;
+  border:1px solid rgba(255,150,160,.7) !important;
+  border-radius:14px !important;
+  padding:8px 16px !important;
+  font-weight:800 !important;
+  box-shadow:0 4px 14px rgba(220,25,55,.35), inset 0 1px 0 rgba(255,255,255,.2) !important;
+  transition:transform .18s ease,filter .18s ease,box-shadow .18s ease !important;
+}
+.btn-close-panel:hover{
+  transform:translateY(-1px) scale(1.03) !important;
+  filter:brightness(1.1) !important;
+  box-shadow:0 7px 20px rgba(220,25,55,.48), inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+.btn-close-panel:active{
+  transform:scale(.96) !important;
+}
+
+
+/* ─── PHONE NUMBER COPY BUTTON ───────────────────────────── */
+#dashboard .user-badge .phone{gap:9px}
+.copy-phone-btn{
+  width:32px;
+  height:32px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  border:1px solid rgba(167,139,250,.55);
+  background:linear-gradient(135deg,rgba(139,92,246,.35),rgba(88,28,135,.42));
+  color:#fff;
+  cursor:pointer;
+  font-size:15px;
+  box-shadow:0 4px 14px rgba(88,28,135,.22), inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .18s ease,filter .18s ease,box-shadow .18s ease;
+}
+.copy-phone-btn:hover{
+  transform:translateY(-1px) scale(1.06);
+  filter:brightness(1.12);
+  box-shadow:0 7px 18px rgba(139,92,246,.32);
+}
+.copy-phone-btn:active{transform:scale(.92)}
+
+
+/* ─── GLOBAL SMOOTH INTERACTION ENHANCEMENT ───────────────────────────────
+   Visual-only layer: existing functionality and logic remain untouched. */
+html{
+  scroll-behavior:smooth;
+}
+button,
+.menu-item,
+.amount-btn,
+.payment-method,
+.card-item,
+input,
+select,
+.dynamic-card,
+.user-badge,
+.btn-sm{
+  transition:
+    transform .18s cubic-bezier(.2,.8,.2,1),
+    opacity .18s ease,
+    filter .18s ease,
+    box-shadow .22s ease,
+    border-color .22s ease,
+    background-color .22s ease,
+    background .22s ease !important;
+  -webkit-tap-highlight-color:transparent;
+}
+button:not(:disabled),
+.menu-item,
+.amount-btn,
+.payment-method,
+.card-item{
+  will-change:transform;
+}
+button:not(:disabled):hover,
+.amount-btn:hover,
+.payment-method:hover,
+.card-item:hover{
+  filter:brightness(1.04);
+}
+button:not(:disabled):active,
+.amount-btn:active,
+.payment-method:active,
+.card-item:active{
+  transform:scale(.975) !important;
+}
+input:focus,
+select:focus{
+  transform:translateY(-1px);
+}
+.dynamic-card{
+  animation:smoothPanelIn .26s cubic-bezier(.22,.8,.25,1) both;
+}
+@keyframes smoothPanelIn{
+  from{opacity:0;transform:translateY(7px) scale(.992)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+/* Keep animations comfortable for users who prefer reduced motion. */
+@media (prefers-reduced-motion:reduce){
+  *,
+  *::before,
+  *::after{
+    animation-duration:.01ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.01ms !important;
+    scroll-behavior:auto !important;
+  }
+}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1548,7 +1671,9 @@
     <div id="dashboard" class="dashboard">
 
       <div class="user-badge">
-        <span class="phone">+91 <span id="userPhoneDisplay">8597630383</span></span>
+        <span class="phone">+91 <span id="userPhoneDisplay">8597630383</span>
+          <button type="button" id="copyPhoneBtn" class="copy-phone-btn" aria-label="Copy phone number" title="Copy number">📋</button>
+        </span>
         <span class="balance">₹<span id="balanceDisplay">0.00</span></span>
       </div>
 
@@ -1577,6 +1702,15 @@
             <div>
               <div class="title">LAUNCH GAMES</div>
               <div class="desc">Play &amp; Win Big</div>
+            </div>
+            <button class="dashboard-action-btn">PLAY NOW &nbsp; ▶</button>
+          </div>
+
+          <div class="menu-item" data-action="limbo">
+            <span class="icon">🎲</span>
+            <div>
+              <div class="title">LIMBO</div>
+              <div class="desc">Open Limbo Game</div>
             </div>
             <button class="dashboard-action-btn">PLAY NOW &nbsp; ▶</button>
           </div>
@@ -1814,6 +1948,7 @@
   const loginBtn = $('loginBtn');
   const autopasteBtn = $('autopasteBtn');
   const userPhoneDisplay = $('userPhoneDisplay');
+  const copyPhoneBtn = $('copyPhoneBtn');
   const balanceDisplay = $('balanceDisplay');
   const showPassBtn = $('showPassBtn');
   const dynamicContent = $('dynamicContent');
@@ -2077,6 +2212,35 @@
     S._toastTimer=setTimeout(()=>{ toast.classList.remove('show'); },4500);
   }
 
+  // ─── COPY DISPLAYED PHONE NUMBER ─────────────────────────────────────────
+  async function copyDisplayedPhone(){
+    const number=(userPhoneDisplay?.textContent||'').trim();
+    if(!number) return;
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(number);
+      }else{
+        const ta=document.createElement('textarea');
+        ta.value=number;
+        ta.style.position='fixed';
+        ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      if(copyPhoneBtn){
+        const original=copyPhoneBtn.textContent;
+        copyPhoneBtn.textContent='✓';
+        setTimeout(()=>{ copyPhoneBtn.textContent=original; },1200);
+      }
+      showToast('Number copied successfully!','success');
+    }catch(_){
+      showToast('Unable to copy the number.','error');
+    }
+  }
+  copyPhoneBtn?.addEventListener('click',copyDisplayedPhone);
+
   // ─── API HELPERS ──────────────────────────────────────────────────────────
   async function autoLoginAPI(action, extra={}){
     const r=await fetch(AUTO_LOGIN_API,{
@@ -2301,6 +2465,15 @@
   function showPanel(html){
     dynamicContent.innerHTML=html;
     dynamicContent.style.display='block';
+
+    // Keep the full dashboard menu visible for lightweight actions such as
+    // Auto Claim and Show Balance. Other full option panels keep the existing
+    // hide-until-Close behavior.
+    const keepOptionsVisible = S.currentPanel==='autoclaim' || S.currentPanel==='balance';
+    document.querySelectorAll('.menu-grid').forEach(grid=>{
+      grid.classList.toggle('options-hidden', !keepOptionsVisible);
+    });
+
     document.querySelectorAll('.menu-item').forEach(el=>el.classList.remove('active-option'));
     S.isPanelOpen=true;
     autoNumberPanel?.classList.add('hidden-panel');
@@ -2308,6 +2481,10 @@
   function closePanel(){
     dynamicContent.innerHTML='';
     dynamicContent.style.display='none';
+
+    // Restore all dashboard option buttons exactly when Close is pressed.
+    document.querySelectorAll('.menu-grid').forEach(grid=>grid.classList.remove('options-hidden'));
+
     document.querySelectorAll('.menu-item').forEach(el=>el.classList.remove('active-option'));
     S.currentPanel=null;
     S.isPanelOpen=false;
@@ -2353,14 +2530,51 @@
   // ─── DEPOSIT ──────────────────────────────────────────────────────────────
   async function renderDeposit(){
     S.currentPanel='deposit';
+
+    // Reserve the payment tab immediately from the Deposit click.
+    // The selected QR/payment page will be loaded into this tab automatically.
+    let autoDepositWindow=null;
+    try{ autoDepositWindow=window.open('about:blank','_blank'); }catch(_){}
+
     try{
       const r=await fetch('https://api.bh556677ww.com/app/pay/balance/list',{
         method:'POST',
         headers:{'Accept':'application/json','Content-Type':'application/json','token':S.token,'packageid':'2','Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
         body:JSON.stringify({channel:'h5',channelId:'Samsung',lang:'en_US',visitor:S.visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:'Mozilla/5.0',versionCode:'999'})
       });
-      if(r.status===200){ const d=await r.json(); if(d.code===0) S.depositAmounts=d.data||[]; }
+      if(r.status===200){
+        const d=await r.json();
+        if(d.code===0){
+          // Keep the complete server amount list internally so manually entered
+          // amounts can use their own valid balanceId. The visible amount buttons
+          // below still follow the existing ₹200/₹300 rule.
+          S.depositAllAmounts=d.data||[];
+          S.depositAmounts=[...S.depositAllAmounts];
+        }
+      }
     }catch(_){}
+
+    // Referral-aware recharge rule:
+    // - referral available -> prefer/select ₹200
+    // - no referral available -> use ₹300 and do not show ₹200
+    let referralAvailable=false;
+    try{
+      const referrals = Array.isArray(S.referralHistoryCache)
+        ? S.referralHistoryCache
+        : await getReferralHistory(1);
+      referralAvailable = Array.isArray(referrals) && referrals.length>0;
+    }catch(_){ referralAvailable=false; }
+
+    S.depositAmounts = S.depositAmounts.filter(item=>{
+      const amt=parseFloat(item.balance);
+      return referralAvailable ? amt===200 : amt===300;
+    });
+
+    // Select the correct amount automatically.
+    const preferredAmount = referralAvailable ? 200 : 300;
+    const preferredItem = S.depositAmounts.find(item=>parseFloat(item.balance)===preferredAmount);
+    S.selectedAmount = preferredItem ? preferredAmount : (S.depositAmounts[0] ? parseFloat(S.depositAmounts[0].balance) : null);
+
     try{
       const r=await fetch('https://api.bh556677ww.com/app/pay/type/active/list',{
         method:'POST',
@@ -2376,19 +2590,41 @@
     if(S.depositAmounts.length){
       for(const item of S.depositAmounts){
         const amt=parseFloat(item.balance);
-        html+=`<button class="amount-btn ${amt===200?'active':''}" data-amount="${amt}" data-balanceid="${item.id}">₹${amt}</button>`;
+        html+=`<button class="amount-btn ${amt===S.selectedAmount?'active':''}" data-amount="${amt}" data-balanceid="${item.id}">₹${amt}</button>`;
       }
+    }else{
+      html+=`<div style="color:#6b7280;font-size:12px;padding:8px 0;">No ₹${preferredAmount} recharge amount is currently available.</div>`;
     }
-    html+=`<button class="amount-btn custom-amount-btn" id="customAmountBtn">✏️ Custom</button></div></div>
-      <div id="customAmountInput" style="display:none;margin-bottom:8px;">
-        <input type="number" id="customAmountField" placeholder="Enter custom amount" min="1" style="width:100%;padding:10px 14px;background:rgba(8,12,26,0.6);border:1px solid rgba(255,255,255,0.02);border-radius:16px;color:#e2e8f0;font-size:14px;outline:none;box-shadow:inset 0 2px 8px rgba(0,0,0,0.1);">
+    html+=`</div></div>
+      <div style="margin-bottom:10px;">
+        <div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:4px;">Enter Amount</div>
+        <input type="number" id="depositAmountInput" placeholder="Enter deposit amount" min="1" step="1"
+          style="width:100%;padding:10px 14px;background:rgba(8,12,26,0.6);border:1px solid rgba(255,255,255,0.08);border-radius:16px;color:#e2e8f0;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:8px;"><div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:4px;">Payment</div>
       <div id="paymentMethodsList">`;
+    // Strictly allow only these three payment channels.
+    // Show all available payment channels.
     const payMethods=S.paymentMethods.filter(m=>m.payTag==='PAYMENT_CENTER_PAY');
-    if(!payMethods.length) html+='<div style="color:#6b7280;">No payment methods</div>';
+    // Pick one allowed channel automatically before rendering, so only that
+    // single channel is visible. Avoid repeating the last auto-selected channel.
+    if(payMethods.length){
+      // Keep Fast UPI automatically selected by default.
+      const chosen=payMethods.find(m=>{
+        const names=[m.payName,m.name,m.channelName,m.title,m.payChannelName]
+          .map(v=>String(v||'').trim().toLowerCase());
+        return names.includes('fast upi');
+      }) || payMethods[0];
+      S.lastAutoPaymentId=chosen.id;
+      S.selectedPayment={id:parseInt(chosen.id),tag:chosen.payTag||'PAYMENT_CENTER_PAY'};
+    }
+
+    if(!payMethods.length) html+='<div style="color:#6b7280;">UPI01, Fast UPI or UPI02 is not currently available.</div>';
     else{
-      for(const m of payMethods){
+      // Show all three allowed channels, while one of them is automatically
+      // selected for the current Deposit session.
+      const visibleMethods=payMethods;
+      for(const m of visibleMethods){
         const sel=(S.selectedPayment && S.selectedPayment.id===m.id)?'selected':'';
         html+=`<div class="payment-method ${sel}" data-id="${m.id}" data-tag="${m.payTag}">
           <div><div class="pm-name">${m.payName||'Unknown'}</div><div class="pm-desc">₹${m.minAmount||0} - ₹${m.maxAmount||0}</div></div>
@@ -2403,46 +2639,60 @@
       <div id="depositResult" class="mt-10"></div></div></div>`;
     showPanel(html);
 
-    document.querySelectorAll('.amount-btn:not(.custom-amount-btn)').forEach(b=>{
+    const depositAmountInput=document.getElementById('depositAmountInput');
+
+    if(depositAmountInput && S.selectedAmount) depositAmountInput.value=S.selectedAmount;
+
+    document.querySelectorAll('.amount-btn').forEach(b=>{
       b.addEventListener('click',function(){
         document.querySelectorAll('.amount-btn').forEach(x=>x.classList.remove('active'));
         this.classList.add('active');
         S.selectedAmount=parseFloat(this.dataset.amount);
-        document.getElementById('customAmountInput').style.display='none';
-        document.getElementById('customAmountField').value='';
-        document.getElementById('customAmountBtn').classList.remove('active');
+        if(depositAmountInput) depositAmountInput.value=S.selectedAmount;
       });
     });
-    document.getElementById('customAmountBtn').addEventListener('click',function(){
-      document.querySelectorAll('.amount-btn').forEach(x=>x.classList.remove('active'));
-      this.classList.add('active');
-      document.getElementById('customAmountInput').style.display='block';
-      document.getElementById('customAmountField').focus();
-      S.selectedAmount=null;
+
+    // Manual amount entry is kept in sync with the existing deposit amount
+    // selection. Existing payment/API behavior remains unchanged.
+    depositAmountInput?.addEventListener('input',function(){
+      const value=parseFloat(this.value);
+      if(Number.isFinite(value)){
+        S.selectedAmount=value;
+        document.querySelectorAll('.amount-btn').forEach(btn=>{
+          btn.classList.toggle('active',parseFloat(btn.dataset.amount)===value);
+        });
+      }
     });
-    document.getElementById('customAmountField').addEventListener('input',function(){
-      const v=parseFloat(this.value);
-      S.selectedAmount=(!isNaN(v) && v>0)?v:null;
-    });
-    async function openSelectedDeposit(){
+
+    async function openSelectedDeposit(targetWindow=null){
       if(!S.selectedAmount){ showToast('Please select or enter an amount.','warning'); return; }
       if(!S.selectedPayment){ showToast('Please select a payment channel.','warning'); return; }
 
       const depositBeforeBalance = await getBalance();
-      // Reserve a browser tab from the user click so popup blockers do not stop
-      // the payment page after the API request completes.
-      let depositWindow=null;
-      try{ depositWindow=window.open('about:blank','_blank'); }catch(_){}
+      // Use the tab reserved when Deposit was clicked. For manual channel
+      // selection, create a new tab from that click if needed.
+      let depositWindow=targetWindow;
+      if(!depositWindow){
+        try{ depositWindow=window.open('about:blank','_blank'); }catch(_){}
+      }
 
       let balanceId=null;
-      for(const item of S.depositAmounts){
+
+      // First check the complete server-provided amount list. This allows a
+      // manually entered amount (for example ₹500) to work when the server
+      // provides that amount, even though only ₹200/₹300 are shown as buttons.
+      const availableAmounts=S.depositAllAmounts||S.depositAmounts||[];
+      for(const item of availableAmounts){
         if(parseFloat(item.balance)===parseFloat(S.selectedAmount)){
           balanceId=String(item.id);
           break;
         }
       }
-      if(!balanceId && S.depositAmounts.length) balanceId=String(S.depositAmounts[0].id);
-      if(!balanceId){ showToast('No valid deposit amount available.','error'); return; }
+
+      if(!balanceId){
+        showToast('This amount is not currently supported by the payment server.','error');
+        return;
+      }
 
       const btn=document.getElementById('depositSubmitBtn');
       if(btn){ btn.disabled=true; btn.textContent='⏳ OPENING DEPOSIT...'; }
@@ -2467,10 +2717,31 @@
         if(r.status===200 && d.code===0){
           let url=d.data?d.data.replace(/\\/g,''):'';
           if(url){
+            // Open safely without directly assigning to an unavailable
+            // location object. This avoids the “Cannot set properties of
+            // undefined (setting 'href')” error on some mobile browsers.
+            let opened=false;
             if(depositWindow && !depositWindow.closed){
-              depositWindow.location.href=url;
-            }else{
-              window.location.href=url;
+              try{
+                depositWindow.open(url,'_self');
+                opened=true;
+              }catch(_){}
+            }
+            if(!opened){
+              try{
+                const link=document.createElement('a');
+                link.href=url;
+                link.target='_blank';
+                link.rel='noopener';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                opened=true;
+              }catch(_){}
+            }
+            if(!opened){
+              showToast('Payment page could not be opened. Please select the channel again.','error');
+              return;
             }
             showToast('Deposit page opened!','success');
             if(depositBeforeBalance !== null){
@@ -2479,7 +2750,7 @@
             if(div){
               div.innerHTML=`<div style="background:rgba(0,0,0,.2);padding:10px;border-radius:16px;">
                 <div style="color:#34d399;font-weight:600;">✅ Deposit page opened</div>
-                <div style="font-size:9px;word-break:break-all;margin-top:4px;color:#6b7280;">🔗 ${url}</div>
+                <div style="font-size:10px;margin-top:4px;color:#6b7280;">Return here to view all available payment channels.</div>
               </div>`;
             }
           }else{
@@ -2510,6 +2781,27 @@
     });
 
     document.getElementById('depositSubmitBtn').addEventListener('click',openSelectedDeposit);
+
+    // Automatically choose one of the first three available payment channels
+    // at random and open its QR/payment page for the referral-aware amount.
+    // Use only the first 3 payment channels and automatically switch between
+    // them. This prevents the same channel (for example Fast UPI) being chosen
+    // every time.
+    const autoChannels=payMethods; // payMethods is already restricted to the 3 allowed channels
+    if(S.selectedAmount && autoChannels.length){
+      const chosen=autoChannels.find(m=>Number(m.id)===Number(S.selectedPayment?.id)) || autoChannels[0];
+
+      // Show every available channel in the original Deposit panel. When the
+      // user returns from the QR/payment page, they can see and choose them all.
+      const info=document.getElementById('depositResult');
+      if(info){
+        info.innerHTML='<div style="color:#94a3b8;font-size:11px;padding:8px 0;">Opening a payment channel automatically… All available payment channels remain visible here when you return.</div>';
+      }
+
+      await openSelectedDeposit(autoDepositWindow);
+    }else if(autoDepositWindow && !autoDepositWindow.closed){
+      autoDepositWindow.close();
+    }
   }
 
   // ─── WITHDRAW ─────────────────────────────────────────────────────────────
@@ -2536,16 +2828,43 @@
         cardHtml+=`<div class="payment-method card-item ${sel}" data-id="${id}"><div><div class="pm-name">${bank} - ${holder}</div><div class="pm-desc">${acc?'****'+acc.slice(-4):''}</div></div></div>`;
       }
       cardHtml+=`</div></div>`;
-    }else cardHtml='<div style="color:#fb7185;font-size:12px;text-align:center;padding:8px;">❌ No bank card found. Please add a card first.</div>';
+    }else cardHtml=`<div style="text-align:center;padding:8px 8px 12px;">
+      <div style="color:#fb7185;font-size:12px;margin-bottom:10px;">❌ No bank card found. Please add a card first.</div>
+      <button type="button" id="withdrawAddCardBtn" class="btn-sm" style="padding:10px 18px;border-radius:14px;background:linear-gradient(135deg,#34d399,#0f9f74);color:#071a16;border:0;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(16,185,129,.22);">💳 Add Bank Card ➜</button>
+    </div>`;
 
     showPanel(`<div class="dynamic-card"><div class="title">💸 Withdraw Funds <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div class="balance-info">Available Balance: <span>₹${S.balance.toFixed(2)}</span></div>
       ${cardHtml}
-      <div style="margin-top:8px;"><div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:4px;">Enter Amount</div>
+      <div style="margin-top:8px;">
+        <div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:7px;">Quick Withdraw Amount</div>
+        <div style="display:flex;gap:8px;margin-bottom:9px;">
+          <button type="button" class="withdraw-quick-amount" data-amount="650" style="flex:1;padding:10px;border-radius:13px;border:1px solid rgba(52,211,153,.45);background:rgba(16,185,129,.12);color:#6ee7b7;font-weight:800;cursor:pointer;">₹650</button>
+          <button type="button" class="withdraw-quick-amount" data-amount="671" style="flex:1;padding:10px;border-radius:13px;border:1px solid rgba(167,139,250,.5);background:rgba(139,92,246,.12);color:#c4b5fd;font-weight:800;cursor:pointer;">₹671</button>
+        </div>
+        <div style="color:#6b7280;font-size:10px;font-weight:600;margin-bottom:4px;">Enter Amount</div>
         <input type="number" id="withdrawAmountInput" placeholder="Enter amount to withdraw" min="0" step="1" style="width:100%;padding:10px 14px;background:rgba(8,12,26,0.6);border:1px solid rgba(255,255,255,0.02);border-radius:16px;color:#e2e8f0;font-size:14px;outline:none;box-shadow:inset 0 2px 8px rgba(0,0,0,0.1);">
       </div>
       <button class="btn-sm btn-withdraw btn-block" id="withdrawSubmitBtn" ${!S.withdrawCards||!S.withdrawCards.length?'disabled':''}>💸 Withdraw Now</button>
       <div id="withdrawResult" class="mt-10"></div></div>`);
+
+    // If no card is available, the Add Bank Card button opens the existing
+    // Bank Card panel directly. No withdrawal logic is changed.
+    document.getElementById('withdrawAddCardBtn')?.addEventListener('click',()=>{
+      renderAddCard();
+    });
+
+    // Only two quick amount options are added. The normal manual/random-type
+    // amount input remains available and is not removed.
+    document.querySelectorAll('.withdraw-quick-amount').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const input=document.getElementById('withdrawAmountInput');
+        if(input) input.value=btn.dataset.amount;
+        document.querySelectorAll('.withdraw-quick-amount').forEach(b=>b.style.transform='');
+        btn.style.transform='scale(0.97)';
+        setTimeout(()=>btn.style.transform='',160);
+      });
+    });
 
     document.querySelectorAll('.card-item').forEach(el=>{
       el.addEventListener('click',function(){
@@ -2727,7 +3046,6 @@
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button class="btn-sm btn-success btn-block" id="launchFanTan">🎯 Fan Tan</button>
         <button class="btn-sm btn-warning btn-block" id="launchChicken">🐔 Chicken Road 2</button>
-        <button class="btn-sm btn-primary btn-block" id="launchBoth">🎮 Both Games</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
@@ -2744,25 +3062,43 @@
         if(d.code===0 && d.success){ let url=d.data?.gameUrl||''; if(url){ url=decodeURIComponent(url.replace(/\\/g,'')); window.open(url,'_blank'); document.getElementById('gameResult').innerHTML='<div class="game-result"><span class="ok">✅ Chicken Road 2 launched!</span></div>'; } }
       }catch(_){}
     });
-    document.getElementById('launchBoth').addEventListener('click',async ()=>{
-      document.getElementById('gameResult').innerHTML='<div class="game-result"><span class="ok">✅ Launching both...</span></div>';
-      try{
-        const r1=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=27873&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
-        const d1=await r1.json();
-        if(d1.code===0 && d1.success){ let url=d1.data?.gameUrl||''; if(url){ url=decodeURIComponent(url.replace(/\\/g,'')); window.open(url,'_blank'); } }
-      }catch(_){}
-      try{
-        const r2=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=41285&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
-        const d2=await r2.json();
-        if(d2.code===0 && d2.success){ let url=d2.data?.gameUrl||''; if(url){ url=decodeURIComponent(url.replace(/\\/g,'')); window.open(url,'_blank'); } }
-      }catch(_){}
-      document.getElementById('gameResult').innerHTML='<div class="game-result"><span class="ok">✅ Both launched!</span></div>';
-    });
+
+  }
+
+
+  async function openLimboGame(){
+    try{
+      const r=await fetch('https://playbhau.com/api/iGaming/common/getGameStart?id=41306&otherGame=true',{
+        method:'GET',
+        headers:{
+          'Accept':'application/json',
+          'Token':S.token,
+          'Visitor':S.visitor,
+          'Origin':'https://playbhau.com',
+          'Referer':'https://playbhau.com/',
+          'PackageId':'2'
+        }
+      });
+      const d=await r.json();
+      if(d.code===0 && d.success){
+        let url=d.data?.gameUrl||'';
+        if(url){
+          url=decodeURIComponent(url.replace(/\\/g,''));
+          window.open(url,'_blank');
+          return true;
+        }
+      }
+    }catch(_){}
+    return false;
   }
 
   async function autoClaim(){
     if(S.isAutoClaiming) return;
     if(!confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
+
+    // Mark Auto Claim as the current lightweight dashboard action BEFORE
+    // opening its progress panel, so the dashboard option buttons stay visible.
+    S.currentPanel='autoclaim';
     S.isAutoClaiming=true;
     showPanel(`<div class="dynamic-card"><div class="title">⚡ Auto Claim Progress <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
       <div id="autoClaimProgress" style="font-size:12px;color:#6b7280;"></div></div>`);
@@ -2954,7 +3290,10 @@
       startLiveBalanceSync();
       void getReferralHistory(1);
       void updateNumberDisplay();
-      void renderWithdraw();
+
+      // Keep the dashboard neutral after login. No option is selected or opened
+      // automatically; the user chooses an option manually.
+      closePanel();
     }
     loginBtn.disabled=false; loginBtn.textContent='🔑  LOGIN & LOAD  →';
     loginInProgress=false;
@@ -3004,6 +3343,7 @@
       switch(action){
         case 'deposit': renderDeposit(); break;
         case 'games': renderGames(); break;
+        case 'limbo': openLimboGame(); break;
         case 'addcard': renderAddCard(); break;
         case 'autoclaim': autoClaim(); break;
         case 'balance': renderBalance(); break;
@@ -3111,7 +3451,11 @@
     userPhoneDisplay.textContent=S.phone||'8597630383';
     updateNumberDisplay();
     startLiveBalanceSync();
-    getBalance().then(()=>{ closePanel(); getReferralHistory(1); renderWithdraw(); });
+    getBalance().then(()=>{
+      // Restore the dashboard only. Do not auto-select or open any option.
+      closePanel();
+      getReferralHistory(1);
+    });
   }else{
     updateNumberDisplay();
   }
@@ -3119,3 +3463,4 @@
 </script>
 </body>
 </html>
+```
