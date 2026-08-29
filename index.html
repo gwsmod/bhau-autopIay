@@ -1709,7 +1709,7 @@ select:focus{
             <span class="icon">🎲</span>
             <div>
               <div class="title">LIMBO</div>
-              <div class="desc">INSTANT 2X</div>
+              <div class="desc">2X INSTANT</div>
             </div>
             <button class="dashboard-action-btn">PLAY NOW &nbsp; ▶</button>
           </div>
@@ -2496,32 +2496,65 @@ select:focus{
   // ─── SMART CALCULATOR ──────────────────────────────────────────────────
   function renderSmartCalculator(){
     S.currentPanel='smartcalc';
+
+    // Automatically pre-select the latest game balance. The input remains
+    // editable, so the existing manual-entry behavior is preserved.
+    const liveBalance=Number(S.balance);
+    const autoBalance=Number.isFinite(liveBalance) && liveBalance>0 ? liveBalance : '';
+
     const html=`<div class="dynamic-card smart-calc-shell"><div class="title">🧮 Smart Calculator <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
-      <div class="smart-calc-hero">Enter your Game Balance. The calculator searches from the full balance downward and selects the highest withdrawal whose <b>final Bank Credit ends in 0</b> after the exact 3% fee and <code>Math.floor()</code>.</div>
-      <div class="input-group"><label>Game Balance</label><input type="number" id="smartCalcBalance" min="1" step="1" inputmode="numeric" placeholder="Enter Game Balance"></div>
+      <div class="smart-calc-hero">Your latest Game Balance is selected automatically. For balances of <b>₹1031 or more</b>, Smart Calculator first uses <b>half of the balance</b>, then applies the existing Smart Calculation rules to find the best withdrawal.</div>
+      <div class="input-group"><label>Game Balance</label><input type="number" id="smartCalcBalance" min="1" step="0.01" inputmode="decimal" placeholder="Enter Game Balance" value="${autoBalance}"></div>
       <button class="btn-sm btn-success btn-block" id="smartCalcBtn">🧮 CALCULATE BEST WITHDRAWAL</button>
       <div id="smartCalcResult"></div></div>`;
     showPanel(html);
+
     const input=$('smartCalcBalance'), btn=$('smartCalcBtn'), result=$('smartCalcResult');
+
     function calculate(){
-      const balance=Math.floor(Number(input.value));
-      if(!Number.isFinite(balance)||balance<1){showToast('Enter a valid Game Balance of at least ₹1.','warning');return;}
-      let recommended=0, bankCredit=0;
-      for(let withdraw=balance;withdraw>=1;withdraw--){
-        const bankAmount=Math.floor(withdraw*0.97);
-        if(bankAmount>0 && bankAmount%10===0){recommended=withdraw;bankCredit=bankAmount;break;}
+      const originalBalance=Number(input.value);
+      if(!Number.isFinite(originalBalance)||originalBalance<1){
+        showToast('Enter a valid Game Balance of at least ₹1.','warning');
+        return;
       }
-      if(!recommended){result.innerHTML='<div class="game-result">No suitable withdrawal amount was found for this balance.</div>';return;}
-      const fee=recommended*0.03, afterFee=recommended*0.97, remaining=balance-recommended;
+
+      // New rule: ₹1031+ uses half of the entered balance first.
+      // Example: ₹1309 → ₹654.50, then the normal Smart Calculation runs.
+      const workingBalance=originalBalance>=1031 ? originalBalance/2 : originalBalance;
+      const searchStart=Math.floor(workingBalance);
+
+      let recommended=0, bankCredit=0;
+      for(let withdraw=searchStart;withdraw>=1;withdraw--){
+        const bankAmount=Math.floor(withdraw*0.97);
+        if(bankAmount>0 && bankAmount%10===0){
+          recommended=withdraw;
+          bankCredit=bankAmount;
+          break;
+        }
+      }
+
+      if(!recommended){
+        result.innerHTML='<div class="game-result">No suitable withdrawal amount was found for this balance.</div>';
+        return;
+      }
+
+      const fee=recommended*0.03;
+      const afterFee=recommended*0.97;
+      const remaining=workingBalance-recommended;
+      const halfApplied=originalBalance>=1031;
+
       result.innerHTML=`<div class="smart-calc-result">
-        <div class="calc-stat"><span>Game Balance</span><strong>₹${balance}</strong></div>
+        <div class="calc-stat"><span>Game Balance</span><strong>₹${originalBalance.toFixed(2)}</strong></div>
+        <div class="calc-stat"><span>Calculation Balance</span><strong>₹${workingBalance.toFixed(2)}</strong></div>
+        ${halfApplied?`<div class="calc-stat" style="grid-column:1/-1;"><span>Smart Rule Applied</span><strong>₹${originalBalance.toFixed(2)} ÷ 2 = ₹${workingBalance.toFixed(2)}</strong></div>`:''}
         <div class="calc-stat"><span>Recommended Withdrawal</span><strong>₹${recommended}</strong></div>
         <div class="calc-stat"><span>3% Withdrawal Fee</span><strong>₹${fee.toFixed(2)}</strong></div>
         <div class="calc-stat"><span>Amount After Fee</span><strong>₹${afterFee.toFixed(2)}</strong></div>
         <div class="calc-stat highlight"><span>FINAL BANK CREDIT</span><strong>₹${bankCredit}</strong></div>
-        <div class="calc-stat"><span>Remaining Game Balance</span><strong>₹${remaining}</strong></div>
+        <div class="calc-stat"><span>Remaining Calculation Balance</span><strong>₹${remaining.toFixed(2)}</strong></div>
       </div><div class="calc-note">Bank Credit = Math.floor(Withdrawal × 0.97)</div>`;
     }
+
     btn.addEventListener('click',calculate);
     input.addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
   }
