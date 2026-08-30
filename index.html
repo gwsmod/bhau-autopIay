@@ -740,6 +740,12 @@
   font-size:44px;
   filter:drop-shadow(0 0 10px #a957ff);
 }
+
+/* Main dashboard header is visible ONLY on the main dashboard.
+   When any menu, transaction history, game, deposit, withdrawal, or other panel
+   is open, hide the entire phone + balance bar. */
+#dashboard.menu-open .user-badge{display:none!important}
+
 #dashboard .save-number-panel{display:none!important}
 #dashboard .dashboard-content-wrapper{display:block}
 #dashboard #dynamicContent{margin-bottom:14px}
@@ -954,6 +960,20 @@
 .smart-calc-shell .calc-stat.highlight{grid-column:1/-1;background:linear-gradient(135deg,rgba(251,191,36,.16),rgba(245,158,11,.08));border-color:rgba(251,191,36,.28);text-align:center}
 .smart-calc-shell .calc-stat.highlight strong{font-size:28px;color:#fbbf24}
 .smart-calc-shell .calc-note{margin-top:10px;color:#718096;font-size:10px;text-align:center}
+/* Clean Smart Calculator result: calculations stay in JavaScript, only the two useful results are shown. */
+.smart-calc-shell.is-calculated .smart-calc-hero,
+.smart-calc-shell.is-calculated .input-group,
+.smart-calc-shell.is-calculated #smartCalcBtn{display:none!important}
+.smart-calc-shell.is-calculated .smart-calc-result{grid-template-columns:1fr;gap:14px;margin-top:18px}
+.smart-calc-shell.is-calculated .calc-stat{padding:18px;border-radius:20px;text-align:center;background:rgba(255,255,255,.035);border-color:rgba(255,255,255,.08)}
+.smart-calc-shell.is-calculated .calc-stat span{font-size:12px;letter-spacing:.7px;margin-bottom:8px}
+.smart-calc-shell.is-calculated .calc-stat strong{font-size:30px;line-height:1.1}
+.smart-calc-shell.is-calculated .calc-stat.recommended{background:linear-gradient(135deg,rgba(16,185,129,.20),rgba(52,211,153,.08));border-color:rgba(52,211,153,.42);box-shadow:0 8px 26px rgba(16,185,129,.10)}
+.smart-calc-shell.is-calculated .calc-stat.recommended span{color:#86efac}
+.smart-calc-shell.is-calculated .calc-stat.recommended strong{color:#34d399;font-size:34px}
+.smart-calc-shell.is-calculated .calc-stat.highlight{grid-column:auto;padding:22px;background:linear-gradient(135deg,rgba(251,191,36,.24),rgba(245,158,11,.10));border-color:rgba(251,191,36,.50);box-shadow:0 10px 32px rgba(245,158,11,.12)}
+.smart-calc-shell.is-calculated .calc-stat.highlight span{color:#fde68a;font-size:13px}
+.smart-calc-shell.is-calculated .calc-stat.highlight strong{font-size:40px;color:#fbbf24}
 @media(max-width:380px){.smart-calc-shell .smart-calc-result{grid-template-columns:1fr}.smart-calc-shell .calc-stat.highlight{grid-column:auto}}
 
 /* ===== DASHBOARD INTERACTION / CLICK TRANSITIONS ===== */
@@ -1580,6 +1600,9 @@ select:focus{
   }
 }
 
+
+    .fan-tan-game-shell{margin-top:12px;width:100%;height:min(78vh,760px);min-height:420px;border-radius:18px;overflow:hidden;position:relative;background:#0b1120;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 50px rgba(0,0,0,.35)}
+    .fan-tan-game-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 14px;background:rgba(15,23,42,.98);border-bottom:1px solid rgba(255,255,255,.1);position:relative;z-index:2}.fan-tan-game-title{font-weight:800;font-size:14px}.fan-tan-game-actions{display:flex;align-items:center;gap:8px}.fan-tan-game-close,.fan-tan-game-fullscreen{border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;color:#fff}.fan-tan-game-close{background:#ef4444}.fan-tan-game-fullscreen{background:#2563eb}.fan-tan-game-fullscreen:hover{filter:brightness(1.08)}.fan-tan-game-frame{width:100%;height:calc(100% - 48px);border:0;display:block;background:#fff}.fan-tan-game-loading{position:absolute;left:0;right:0;top:48px;bottom:0;display:flex;align-items:center;justify-content:center;color:#cbd5e1;pointer-events:none}.fan-tan-game-shell.is-loaded .fan-tan-game-loading{display:none}.fan-tan-game-shell:fullscreen,.fan-tan-game-shell:-webkit-full-screen{width:100vw;height:100vh;max-width:none;margin:0;border-radius:0;background:#000}@media(max-width:600px){.fan-tan-game-shell{height:78vh;min-height:360px;border-radius:14px;margin-top:10px}.fan-tan-game-close,.fan-tan-game-fullscreen{padding:7px 10px;font-size:12px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -2460,8 +2483,18 @@ select:focus{
     }
   }
 
+  // ─── MAIN DASHBOARD HEADER VISIBILITY ─────────────────────────────────
+  // The phone number is visible only on the main dashboard. It is hidden while
+  // any menu, game, deposit, withdrawal, or other panel is open.
+  function setMainDashboardHeader(isMainDashboard){
+    const dashboardEl=document.getElementById('dashboard');
+    if(!dashboardEl) return;
+    dashboardEl.classList.toggle('menu-open', !isMainDashboard);
+  }
+
   // ─── PANEL CONTROL ──────────────────────────────────────────────────────
   function showPanel(html){
+    setMainDashboardHeader(false);
     dynamicContent.innerHTML=html;
     dynamicContent.style.display='block';
 
@@ -2478,6 +2511,7 @@ select:focus{
     autoNumberPanel?.classList.add('hidden-panel');
   }
   function closePanel(){
+    setMainDashboardHeader(true);
     dynamicContent.innerHTML='';
     dynamicContent.style.display='none';
 
@@ -2538,21 +2572,15 @@ select:focus{
         return;
       }
 
-      const fee=recommended*0.03;
-      const afterFee=recommended*0.97;
-      const remaining=workingBalance-recommended;
-      const halfApplied=originalBalance>=1031;
+      // Keep all existing Smart Calculator calculations in the background,
+      // but show the user only the two final values they need.
+      const shell=document.querySelector('.smart-calc-shell');
+      if(shell) shell.classList.add('is-calculated');
 
-      result.innerHTML=`<div class="smart-calc-result">
-        <div class="calc-stat"><span>Game Balance</span><strong>₹${originalBalance.toFixed(2)}</strong></div>
-        <div class="calc-stat"><span>Calculation Balance</span><strong>₹${workingBalance.toFixed(2)}</strong></div>
-        ${halfApplied?`<div class="calc-stat" style="grid-column:1/-1;"><span>Smart Rule Applied</span><strong>₹${originalBalance.toFixed(2)} ÷ 2 = ₹${workingBalance.toFixed(2)}</strong></div>`:''}
-        <div class="calc-stat"><span>Recommended Withdrawal</span><strong>₹${recommended}</strong></div>
-        <div class="calc-stat"><span>3% Withdrawal Fee</span><strong>₹${fee.toFixed(2)}</strong></div>
-        <div class="calc-stat"><span>Amount After Fee</span><strong>₹${afterFee.toFixed(2)}</strong></div>
-        <div class="calc-stat highlight"><span>FINAL BANK CREDIT</span><strong>₹${bankCredit}</strong></div>
-        <div class="calc-stat"><span>Remaining Calculation Balance</span><strong>₹${remaining.toFixed(2)}</strong></div>
-      </div><div class="calc-note">Bank Credit = Math.floor(Withdrawal × 0.97)</div>`;
+      result.innerHTML=`<div class="smart-calc-result smart-calc-clean-result">
+        <div class="calc-stat recommended"><span>💸 RECOMMENDED WITHDRAWAL</span><strong>₹${recommended}</strong></div>
+        <div class="calc-stat highlight"><span>🏦 FINAL BANK CREDIT</span><strong>₹${bankCredit}</strong></div>
+      </div>`;
     }
 
     btn.addEventListener('click',calculate);
@@ -2562,11 +2590,6 @@ select:focus{
   // ─── DEPOSIT ──────────────────────────────────────────────────────────────
   async function renderDeposit(){
     S.currentPanel='deposit';
-
-    // Reserve the payment tab immediately from the Deposit click.
-    // The selected QR/payment page will be loaded into this tab automatically.
-    let autoDepositWindow=null;
-    try{ autoDepositWindow=window.open('about:blank','_blank'); }catch(_){}
 
     try{
       const r=await fetch('https://api.bh556677ww.com/app/pay/balance/list',{
@@ -2586,9 +2609,9 @@ select:focus{
       }
     }catch(_){}
 
-    // Referral-aware recharge rule:
-    // - referral available -> prefer/select ₹200
-    // - no referral available -> use ₹300 and do not show ₹200
+    // Keep the quick amount buttons limited to ₹200 and ₹300 only.
+    // The Enter Amount field remains available for a manual amount.
+    // Referral status is used only to choose the default amount.
     let referralAvailable=false;
     try{
       const referrals = Array.isArray(S.referralHistoryCache)
@@ -2599,10 +2622,10 @@ select:focus{
 
     S.depositAmounts = S.depositAmounts.filter(item=>{
       const amt=parseFloat(item.balance);
-      return referralAvailable ? amt===200 : amt===300;
+      return amt===200 || amt===300;
     });
 
-    // Select the correct amount automatically.
+    // Referral-aware default: ₹200 with referral, otherwise ₹300.
     const preferredAmount = referralAvailable ? 200 : 300;
     const preferredItem = S.depositAmounts.find(item=>parseFloat(item.balance)===preferredAmount);
     S.selectedAmount = preferredItem ? preferredAmount : (S.depositAmounts[0] ? parseFloat(S.depositAmounts[0].balance) : null);
@@ -2666,7 +2689,7 @@ select:focus{
     html+=`</div></div>
       <div class="deposit-action-bar">
         <button class="btn-sm btn-deposit btn-block" id="depositSubmitBtn">💳 DEPOSIT NOW &nbsp; ▶</button>
-        <div class="deposit-auto-hint">Select a payment channel to open its deposit page instantly.</div>
+        <div class="deposit-auto-hint">Select a payment channel to open its secure payment page inside this dashboard.</div>
       </div>
       <div id="depositResult" class="mt-10"></div></div></div>`;
     showPanel(html);
@@ -2696,17 +2719,132 @@ select:focus{
       }
     });
 
+    // First visit to Deposit opens the QR/payment page directly. When the user
+    // closes that page, reveal the normal Deposit controls without reloading.
+    function showAllDepositChoices(){
+      const content=document.getElementById('depositContent');
+      const action=document.querySelector('.deposit-action-bar');
+      if(content){
+        Array.from(content.children).forEach(child=>{
+          if(child.id!=='depositResult') child.style.display='';
+        });
+      }
+      if(action) action.style.display='';
+
+      // Keep the quick amount buttons limited to ₹200 and ₹300 after returning too.
+      // The manual Enter Amount field can still be used for other valid amounts.
+      const grid=document.getElementById('amountGrid');
+      if(grid && Array.isArray(S.depositAllAmounts) && S.depositAllAmounts.length){
+        const quickAmounts=S.depositAllAmounts.filter(item=>{
+          const amt=parseFloat(item.balance);
+          return amt===200 || amt===300;
+        });
+        grid.innerHTML='';
+        quickAmounts.forEach(item=>{
+          const amt=parseFloat(item.balance);
+          const b=document.createElement('button');
+          b.type='button';
+          b.className='amount-btn'+(amt===S.selectedAmount?' active':'');
+          b.dataset.amount=amt;
+          b.dataset.balanceid=item.id;
+          b.textContent='₹'+amt;
+          b.addEventListener('click',function(){
+            document.querySelectorAll('.amount-btn').forEach(x=>x.classList.remove('active'));
+            this.classList.add('active');
+            S.selectedAmount=parseFloat(this.dataset.amount);
+            const input=document.getElementById('depositAmountInput');
+            if(input) input.value=S.selectedAmount;
+          });
+          grid.appendChild(b);
+        });
+      }
+    }
+
+    // Hide the normal amount/channel controls whenever ANY deposit payment page
+    // is opened (automatic or manual). Keep #depositResult visible because the
+    // secure QR/payment iframe is mounted there.
+    function hideDepositChoices(){
+      const content=document.getElementById('depositContent');
+      const action=document.querySelector('.deposit-action-bar');
+      if(content){
+        Array.from(content.children).forEach(child=>{
+          if(child.id!=='depositResult') child.style.display='none';
+        });
+      }
+      if(action) action.style.display='none';
+    }
+
+    function closeDepositEmbedded(){
+      const shell=document.getElementById('depositGameShell');
+      if(!shell) return;
+      const frame=document.getElementById('depositGameFrame');
+      if(frame) frame.src='about:blank';
+      shell.remove();
+      showAllDepositChoices();
+      const result=document.getElementById('depositResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">← Choose any amount or payment channel.</span></div>';
+    }
+
+    function openDepositEmbedded(url){
+      const result=document.getElementById('depositResult');
+      if(!result) return;
+
+      // This is used for both the first automatic deposit and every manual
+      // amount/channel selection, so the QR/payment page is always shown alone.
+      hideDepositChoices();
+
+      const old=document.getElementById('depositGameShell');
+      if(old) old.remove();
+
+      const shell=document.createElement('div');
+      shell.id='depositGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`
+        <div class="fan-tan-game-bar">
+          <div class="fan-tan-game-title">💳 Secure Deposit</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" class="fan-tan-game-close" id="newDepositQR" style="background:linear-gradient(135deg,#2563eb,#4f46e5);box-shadow:0 6px 18px rgba(59,130,246,.25);">↻ New QR</button>
+            <button type="button" class="fan-tan-game-close" id="closeDepositGame">✕ Close</button>
+          </div>
+        </div>
+        <div class="fan-tan-game-loading">⏳ Loading payment page...</div>
+        <iframe id="depositGameFrame" class="fan-tan-game-frame"
+          title="Secure Deposit"
+          allow="payment; fullscreen; autoplay"
+          referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+
+      result.innerHTML='';
+      result.appendChild(shell);
+      const frame=document.getElementById('depositGameFrame');
+      document.getElementById('closeDepositGame').addEventListener('click',closeDepositEmbedded);
+
+      // Generate a fresh authorized payment session/QR without returning to the
+      // amount or payment-channel screen. The current selections stay unchanged.
+      document.getElementById('newDepositQR').addEventListener('click',async function(){
+        if(this.disabled) return;
+        this.disabled=true;
+        const original=this.textContent;
+        this.textContent='⏳ New QR...';
+        try{
+          await openSelectedDeposit();
+        }finally{
+          // The embedded shell may have been replaced with the new QR page.
+          // Only restore this button when the same shell is still present.
+          if(document.getElementById('newDepositQR')===this){
+            this.disabled=false;
+            this.textContent=original;
+          }
+        }
+      });
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
     async function openSelectedDeposit(targetWindow=null){
       if(!S.selectedAmount){ showToast('Please select or enter an amount.','warning'); return; }
       if(!S.selectedPayment){ showToast('Please select a payment channel.','warning'); return; }
 
       const depositBeforeBalance = await getBalance();
-      // Use the tab reserved when Deposit was clicked. For manual channel
-      // selection, create a new tab from that click if needed.
-      let depositWindow=targetWindow;
-      if(!depositWindow){
-        try{ depositWindow=window.open('about:blank','_blank'); }catch(_){}
-      }
 
       let balanceId=null;
 
@@ -2749,41 +2887,12 @@ select:focus{
         if(r.status===200 && d.code===0){
           let url=d.data?d.data.replace(/\\/g,''):'';
           if(url){
-            // Open safely without directly assigning to an unavailable
-            // location object. This avoids the “Cannot set properties of
-            // undefined (setting 'href')” error on some mobile browsers.
-            let opened=false;
-            if(depositWindow && !depositWindow.closed){
-              try{
-                depositWindow.open(url,'_self');
-                opened=true;
-              }catch(_){}
-            }
-            if(!opened){
-              try{
-                const link=document.createElement('a');
-                link.href=url;
-                link.target='_blank';
-                link.rel='noopener';
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                opened=true;
-              }catch(_){}
-            }
-            if(!opened){
-              showToast('Payment page could not be opened. Please select the channel again.','error');
-              return;
-            }
-            showToast('Deposit page opened!','success');
+            // Keep the authorized payment URL/session exactly as returned,
+            // but display it inside the current dashboard instead of a new tab.
+            openDepositEmbedded(url);
+            showToast('Deposit page opened inside dashboard!','success');
             if(depositBeforeBalance !== null){
               watchDepositBalance(Number(depositBeforeBalance),Number(S.selectedAmount));
-            }
-            if(div){
-              div.innerHTML=`<div style="background:rgba(0,0,0,.2);padding:10px;border-radius:16px;">
-                <div style="color:#34d399;font-weight:600;">✅ Deposit page opened</div>
-                <div style="font-size:10px;margin-top:4px;color:#6b7280;">Return here to view all available payment channels.</div>
-              </div>`;
             }
           }else{
             showToast('Deposit created, but no payment URL was returned.','warning');
@@ -2814,25 +2923,35 @@ select:focus{
 
     document.getElementById('depositSubmitBtn').addEventListener('click',openSelectedDeposit);
 
-    // Automatically choose one of the first three available payment channels
-    // at random and open its QR/payment page for the referral-aware amount.
-    // Use only the first 3 payment channels and automatically switch between
-    // them. This prevents the same channel (for example Fast UPI) being chosen
-    // every time.
-    const autoChannels=payMethods; // payMethods is already restricted to the 3 allowed channels
-    if(S.selectedAmount && autoChannels.length){
-      const chosen=autoChannels.find(m=>Number(m.id)===Number(S.selectedPayment?.id)) || autoChannels[0];
+    // Automatic Deposit flow:
+    // Deposit -> referral-aware ₹200/₹300 -> Fast UPI -> authorized QR/payment page.
+    // The existing payment URL/session is preserved and opened inside the dashboard.
+    const info=document.getElementById('depositResult');
+    if(info){
+      info.innerHTML='<div style="color:#94a3b8;font-size:11px;padding:8px 0;">Preparing Fast UPI payment automatically…</div>';
+    }
 
-      // Show every available channel in the original Deposit panel. When the
-      // user returns from the QR/payment page, they can see and choose them all.
-      const info=document.getElementById('depositResult');
-      if(info){
-        info.innerHTML='<div style="color:#94a3b8;font-size:11px;padding:8px 0;">Opening a payment channel automatically… All available payment channels remain visible here when you return.</div>';
-      }
+    // First Deposit view: hide only the normal controls. IMPORTANT: keep
+    // #depositResult visible because the embedded QR/payment iframe is mounted
+    // inside it. Hiding #depositContent would also hide the QR page.
+    const depositContent=document.getElementById('depositContent');
+    const depositAction=document.querySelector('.deposit-action-bar');
+    if(depositContent){
+      Array.from(depositContent.children).forEach(child=>{
+        if(child.id!=='depositResult') child.style.display='none';
+      });
+    }
+    if(depositAction) depositAction.style.display='none';
 
-      await openSelectedDeposit(autoDepositWindow);
-    }else if(autoDepositWindow && !autoDepositWindow.closed){
-      autoDepositWindow.close();
+    // Fast UPI is already selected above (with the first available channel as
+    // a fallback). Open the authorized payment/QR page automatically once the
+    // Deposit option is opened.
+    if(S.selectedAmount && S.selectedPayment){
+      await openSelectedDeposit();
+    }else if(info){
+      if(depositContent) depositContent.style.display='';
+      if(depositAction) depositAction.style.display='';
+      info.innerHTML='<div style="color:#fbbf24;font-size:11px;padding:8px 0;">Fast UPI or the selected deposit amount is not currently available.</div>';
     }
   }
 
@@ -3072,31 +3191,166 @@ select:focus{
       <div style="color:#6b7280;font-size:13px;margin-top:4px;">Available Balance</div></div></div>`);
   }
 
+  function toggleGameFullscreen(shell, button){
+    if(!shell) return;
+    if(document.fullscreenElement===shell || document.webkitFullscreenElement===shell){
+      const exit=document.exitFullscreen||document.webkitExitFullscreen;
+      if(exit) exit.call(document);
+      return;
+    }
+    const request=shell.requestFullscreen||shell.webkitRequestFullscreen;
+    if(request){
+      const promise=request.call(shell);
+      if(promise?.catch) promise.catch(()=>showToast('Fullscreen is not available in this browser.','warning'));
+    }
+  }
+
   function renderGames(){
     S.currentPanel='games';
     showPanel(`<div class="dynamic-card"><div class="title">🎮 Launch Games <button class="btn-close-panel" onclick="window._closePanel()">✕ Close</button></div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
+      <div id="gameLaunchOptions" style="display:flex;flex-direction:column;gap:8px;">
         <button class="btn-sm btn-success btn-block" id="launchFanTan">🎯 Fan Tan</button>
         <button class="btn-sm btn-warning btn-block" id="launchChicken">🐔 Chicken Road 2</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
+    // Keep the game launcher and the embedded game mutually exclusive.
+    // The main panel Close button still closes the entire Games panel and returns
+    // to the dashboard; Close Game only returns to the game selection screen.
+    function setGameLauncherVisible(visible){
+      const options=document.getElementById('gameLaunchOptions');
+      if(options) options.style.display=visible ? 'flex' : 'none';
+    }
+
+    function closeFanTanGame(){
+      const shell=document.getElementById('fanTanGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('fanTanGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function openFanTanEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      const old=document.getElementById('fanTanGameShell');
+      if(old){ const oldFrame=old.querySelector('iframe'); if(oldFrame) oldFrame.src='about:blank'; old.remove(); }
+      const other=document.getElementById('chickenGameShell');
+      if(other){ const otherFrame=other.querySelector('iframe'); if(otherFrame) otherFrame.src='about:blank'; other.remove(); }
+      setGameLauncherVisible(false);
+      const shell=document.createElement('div');
+      shell.id='fanTanGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🎯 Fan Tan</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="fanTanFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeFanTanGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Fan Tan...</div><iframe id="fanTanGameFrame" class="fan-tan-game-frame" title="Fan Tan Game" allow="autoplay" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+      const frame=shell.querySelector('#fanTanGameFrame');
+      shell.querySelector('#closeFanTanGame').addEventListener('click',closeFanTanGame);
+      shell.querySelector('#fanTanFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
       try{
         const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=27873&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
         const d=await r.json();
-        if(d.code===0 && d.success){ let url=d.data?.gameUrl||''; if(url){ url=decodeURIComponent(url.replace(/\\/g,'')); window.open(url,'_blank'); document.getElementById('gameResult').innerHTML='<div class="game-result"><span class="ok">✅ Fan Tan launched!</span></div>'; } }
-      }catch(_){}
+        if(d.code===0 && d.success){
+          let url=d.data?.gameUrl||'';
+          if(url){
+            url=decodeURIComponent(url.replace(/\\/g,''));
+            openFanTanEmbedded(url);
+          }else{
+            document.getElementById('gameResult').innerHTML='<div class="game-result">⚠️ No Fan Tan launch URL was returned.</div>';
+          }
+        }else{
+          document.getElementById('gameResult').innerHTML='<div class="game-result">⚠️ Fan Tan could not be launched.</div>';
+        }
+      }catch(_){
+        const result=document.getElementById('gameResult');
+        if(result) result.innerHTML='<div class="game-result">⚠️ Unable to load Fan Tan. Please try again.</div>';
+      }
     });
+    function closeChickenGame(){
+      const shell=document.getElementById('chickenGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('chickenGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function openChickenEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      const old=document.getElementById('chickenGameShell');
+      if(old){ const oldFrame=old.querySelector('iframe'); if(oldFrame) oldFrame.src='about:blank'; old.remove(); }
+      const other=document.getElementById('fanTanGameShell');
+      if(other){ const otherFrame=other.querySelector('iframe'); if(otherFrame) otherFrame.src='about:blank'; other.remove(); }
+      setGameLauncherVisible(false);
+      const shell=document.createElement('div');
+      shell.id='chickenGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🐔 Chicken Road 2</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="chickenFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeChickenGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Chicken Road 2...</div><iframe id="chickenGameFrame" class="fan-tan-game-frame" title="Chicken Road 2 Game" allow="autoplay" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+      const frame=shell.querySelector('#chickenGameFrame');
+      shell.querySelector('#closeChickenGame').addEventListener('click',closeChickenGame);
+      shell.querySelector('#chickenFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
     document.getElementById('launchChicken').addEventListener('click',async ()=>{
       try{
         const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=41285&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
         const d=await r.json();
-        if(d.code===0 && d.success){ let url=d.data?.gameUrl||''; if(url){ url=decodeURIComponent(url.replace(/\\/g,'')); window.open(url,'_blank'); document.getElementById('gameResult').innerHTML='<div class="game-result"><span class="ok">✅ Chicken Road 2 launched!</span></div>'; } }
-      }catch(_){}
+        if(d.code===0 && d.success){
+          let url=d.data?.gameUrl||'';
+          if(url){
+            url=decodeURIComponent(url.replace(/\\/g,''));
+            openChickenEmbedded(url);
+          }else{
+            document.getElementById('gameResult').innerHTML='<div class="game-result">⚠️ No Chicken Road 2 launch URL was returned.</div>';
+          }
+        }else{
+          document.getElementById('gameResult').innerHTML='<div class="game-result">⚠️ Chicken Road 2 could not be launched.</div>';
+        }
+      }catch(_){
+        const result=document.getElementById('gameResult');
+        if(result) result.innerHTML='<div class="game-result">⚠️ Unable to load Chicken Road 2. Please try again.</div>';
+      }
     });
 
   }
 
+
+  function openLimboEmbedded(url){
+    S.currentPanel='limbo';
+    showPanel(`<div class="dynamic-card"><div class="title">🎯 Limbo <button class="btn-close-panel" id="closeLimboPanel">✕ Close</button></div><div id="limboGameResult" class="mt-10"></div></div>`);
+    const result=document.getElementById('limboGameResult');
+    if(!result) return;
+    const shell=document.createElement('div');
+    shell.id='limboGameShell';
+    shell.className='fan-tan-game-shell';
+    shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🎯 Limbo</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="limboFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeLimboGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Limbo...</div><iframe id="limboGameFrame" class="fan-tan-game-frame" title="Limbo Game" allow="autoplay" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    result.appendChild(shell);
+    const frame=shell.querySelector('#limboGameFrame');
+    const close=()=>{
+      frame.src='about:blank';
+      shell.remove();
+      closePanel();
+    };
+    shell.querySelector('#closeLimboGame').addEventListener('click',close);
+    shell.querySelector('#limboFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+    document.getElementById('closeLimboPanel')?.addEventListener('click',close);
+    frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+    frame.src=url;
+  }
 
   async function openLimboGame(){
     try{
@@ -3116,11 +3370,12 @@ select:focus{
         let url=d.data?.gameUrl||'';
         if(url){
           url=decodeURIComponent(url.replace(/\\/g,''));
-          window.open(url,'_blank');
+          openLimboEmbedded(url);
           return true;
         }
       }
-    }catch(_){}
+      showToast('Limbo could not be launched.','error');
+    }catch(_){ showToast('Unable to load Limbo. Please try again.','error'); }
     return false;
   }
 
@@ -3370,6 +3625,9 @@ select:focus{
       const action=this.dataset.action;
       if(action==='logout'){ showLogoutConfirmation(); return; }
       if(S.currentPanel===action && dynamicContent.innerHTML!==''){ closePanel(); return; }
+      // A menu was opened: hide the phone number until the user closes the panel
+      // and returns to the main dashboard.
+      setMainDashboardHeader(false);
       document.querySelectorAll('.menu-item').forEach(i=>i.classList.remove('active-option'));
       this.classList.add('active-option');
       switch(action){
