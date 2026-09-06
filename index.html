@@ -1603,6 +1603,40 @@ select:focus{
 
     .fan-tan-game-shell{margin-top:12px;width:100%;height:min(78vh,760px);min-height:420px;border-radius:18px;overflow:hidden;position:relative;background:#0b1120;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 50px rgba(0,0,0,.35)}
     .fan-tan-game-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 14px;background:rgba(15,23,42,.98);border-bottom:1px solid rgba(255,255,255,.1);position:relative;z-index:2}.fan-tan-game-title{font-weight:800;font-size:14px}.fan-tan-game-actions{display:flex;align-items:center;gap:8px}.fan-tan-game-close,.fan-tan-game-fullscreen{border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;color:#fff}.fan-tan-game-close{background:#ef4444}.fan-tan-game-fullscreen{background:#2563eb}.fan-tan-game-fullscreen:hover{filter:brightness(1.08)}.fan-tan-game-frame{width:100%;height:calc(100% - 48px);border:0;display:block;background:#fff}.fan-tan-game-loading{position:absolute;left:0;right:0;top:48px;bottom:0;display:flex;align-items:center;justify-content:center;color:#cbd5e1;pointer-events:none}.fan-tan-game-shell.is-loaded .fan-tan-game-loading{display:none}.fan-tan-game-shell:fullscreen,.fan-tan-game-shell:-webkit-full-screen{width:100vw;height:100vh;max-width:none;margin:0;border-radius:0;background:#000}@media(max-width:600px){.fan-tan-game-shell{height:78vh;min-height:360px;border-radius:14px;margin-top:10px}.fan-tan-game-close,.fan-tan-game-fullscreen{padding:7px 10px;font-size:12px}}
+
+
+/* ===== BIG GAME LAUNCH OPTIONS ===== */
+#gameLaunchOptions{
+  gap:16px !important;
+}
+#gameLaunchOptions #launchFanTan,
+#gameLaunchOptions #launchChicken{
+  min-height:100px !important;
+  padding:22px 20px !important;
+  border-radius:22px !important;
+  font-size:22px !important;
+  font-weight:900 !important;
+  letter-spacing:.3px !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.25) !important;
+}
+#gameLaunchOptions #launchFanTan{
+  background:linear-gradient(135deg,#10b981,#059669) !important;
+}
+#gameLaunchOptions #launchChicken{
+  background:linear-gradient(135deg,#fbbf24,#d97706) !important;
+}
+#gameLaunchOptions #launchFanTan:active,
+#gameLaunchOptions #launchChicken:active{
+  transform:scale(.97) !important;
+}
+@media(max-width:440px){
+  #gameLaunchOptions #launchFanTan,
+  #gameLaunchOptions #launchChicken{
+    min-height:90px !important;
+    font-size:19px !important;
+    padding:18px 14px !important;
+  }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1890,7 +1924,12 @@ select:focus{
         const credited=Number((afterBalance-beforeBalance).toFixed(2));
         clearInterval(timer);
         depositWatchRunning=false;
-        await trackProfitEvent('DEPOSIT',S.phone,credited);
+        // Show/send deposit success notification only for ₹200 or ₹300 deposits.
+        const selectedAmount=Number(requestedAmount);
+        if(selectedAmount===200 || selectedAmount===300){
+          await trackProfitEvent('DEPOSIT',S.phone,credited);
+          showToast(`Deposit successful! ₹${credited.toFixed(2)} credited.`,'success');
+        }
         return;
       }
       if(tries>=30){
@@ -2927,7 +2966,22 @@ select:focus{
           }
         }
       });
-      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      // Keep the payment page inside the dashboard. If the embedded page
+      // navigates away after its first load (for example a redirect to
+      // google.com), immediately close the deposit panel and return to the
+      // main dashboard.
+      let depositFrameLoads=0;
+      frame.addEventListener('load',()=>{
+        depositFrameLoads++;
+        shell.classList.add('is-loaded');
+
+        if(depositFrameLoads > 1){
+          // Stop the redirected page first, then restore the main dashboard.
+          try{ frame.src='about:blank'; }catch(e){}
+          closeDepositEmbedded();
+          closePanel();
+        }
+      });
       frame.src=url;
     }
 
