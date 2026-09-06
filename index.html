@@ -3375,9 +3375,10 @@ select:focus{
       if(options) options.style.display=visible ? 'flex' : 'none';
     }
 
-    // Fan Tan profit watcher: remembers the wallet balance when the game opens.
-    // If the wallet increases by ₹1300 or more, immediately return to the main dashboard.
-    let fanTanStartingBalance=null;
+    // Fan Tan total wallet watcher.
+    // Example: wallet ₹350 + profit ₹950 = total ₹1300.
+    // As soon as the TOTAL wallet balance reaches ₹1300 or more, close Fan Tan
+    // and instantly return to the main dashboard.
     let fanTanProfitHandled=false;
     let fanTanBalanceWatcher=null;
 
@@ -3386,29 +3387,28 @@ select:focus{
         window.removeEventListener('balancechange',fanTanBalanceWatcher);
         fanTanBalanceWatcher=null;
       }
-      fanTanStartingBalance=null;
     }
 
     function startFanTanProfitWatcher(){
       stopFanTanProfitWatcher();
-      fanTanStartingBalance=Number(S.balance)||0;
       fanTanProfitHandled=false;
       fanTanBalanceWatcher=(event)=>{
-        if(fanTanProfitHandled || fanTanStartingBalance===null) return;
+        if(fanTanProfitHandled) return;
         const current=Number(event?.detail?.balance);
         if(!Number.isFinite(current)) return;
-        const profit=current-fanTanStartingBalance;
-        if(profit>=1300){
+
+        // TOTAL wallet balance threshold, not ₹1300 profit.
+        if(current>=1300){
           fanTanProfitHandled=true;
           const frame=document.getElementById('fanTanGameFrame');
           if(frame) frame.src='about:blank';
           stopFanTanProfitWatcher();
           closePanel();
-          showToast(`🎉 Fan Tan profit ₹${profit.toFixed(2)}! Returning to dashboard.`,'success');
+          showToast(`🎉 Wallet reached ₹${current.toFixed(2)}! Returning to dashboard.`,'success');
         }
       };
       window.addEventListener('balancechange',fanTanBalanceWatcher);
-      // Check once immediately in case the balance was updated just before the listener.
+      // Check immediately in case the wallet is already ₹1300 or more.
       fanTanBalanceWatcher({detail:{balance:S.balance}});
     }
 
