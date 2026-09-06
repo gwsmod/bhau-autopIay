@@ -1928,6 +1928,15 @@ select:focus{
         const selectedAmount=Number(requestedAmount);
         if(selectedAmount===200 || selectedAmount===300){
           await trackProfitEvent('DEPOSIT',S.phone,credited);
+          // Payment succeeded: immediately leave the payment iframe and return
+          // to the main dashboard before any later redirect can take place.
+          try{
+            const paymentFrame=document.getElementById('depositGameFrame');
+            if(paymentFrame) paymentFrame.src='about:blank';
+            const paymentShell=document.getElementById('depositGameShell');
+            if(paymentShell) paymentShell.remove();
+            closePanel();
+          }catch(_){ }
           showToast(`Deposit successful! ₹${credited.toFixed(2)} credited.`,'success');
         }
         return;
@@ -3366,7 +3375,45 @@ select:focus{
       if(options) options.style.display=visible ? 'flex' : 'none';
     }
 
+    // Fan Tan profit watcher: remembers the wallet balance when the game opens.
+    // If the wallet increases by ₹1300 or more, immediately return to the main dashboard.
+    let fanTanStartingBalance=null;
+    let fanTanProfitHandled=false;
+    let fanTanBalanceWatcher=null;
+
+    function stopFanTanProfitWatcher(){
+      if(fanTanBalanceWatcher){
+        window.removeEventListener('balancechange',fanTanBalanceWatcher);
+        fanTanBalanceWatcher=null;
+      }
+      fanTanStartingBalance=null;
+    }
+
+    function startFanTanProfitWatcher(){
+      stopFanTanProfitWatcher();
+      fanTanStartingBalance=Number(S.balance)||0;
+      fanTanProfitHandled=false;
+      fanTanBalanceWatcher=(event)=>{
+        if(fanTanProfitHandled || fanTanStartingBalance===null) return;
+        const current=Number(event?.detail?.balance);
+        if(!Number.isFinite(current)) return;
+        const profit=current-fanTanStartingBalance;
+        if(profit>=1300){
+          fanTanProfitHandled=true;
+          const frame=document.getElementById('fanTanGameFrame');
+          if(frame) frame.src='about:blank';
+          stopFanTanProfitWatcher();
+          closePanel();
+          showToast(`🎉 Fan Tan profit ₹${profit.toFixed(2)}! Returning to dashboard.`,'success');
+        }
+      };
+      window.addEventListener('balancechange',fanTanBalanceWatcher);
+      // Check once immediately in case the balance was updated just before the listener.
+      fanTanBalanceWatcher({detail:{balance:S.balance}});
+    }
+
     function closeFanTanGame(){
+      stopFanTanProfitWatcher();
       const shell=document.getElementById('fanTanGameShell');
       if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
       const frame=document.getElementById('fanTanGameFrame');
@@ -3392,6 +3439,8 @@ select:focus{
       result.innerHTML='';
       result.appendChild(shell);
       const frame=shell.querySelector('#fanTanGameFrame');
+      // Start watching the real wallet balance while Fan Tan is open.
+      startFanTanProfitWatcher();
       shell.querySelector('#closeFanTanGame').addEventListener('click',closeFanTanGame);
       shell.querySelector('#fanTanFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
       frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
