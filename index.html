@@ -1924,9 +1924,9 @@ select:focus{
         const credited=Number((afterBalance-beforeBalance).toFixed(2));
         clearInterval(timer);
         depositWatchRunning=false;
-        // Show/send deposit success notification only for ₹200 or ₹300 deposits.
-        const selectedAmount=Number(requestedAmount);
-        if(selectedAmount===200 || selectedAmount===300){
+        // Close the payment page only when ₹200 or more is actually credited
+        // to the wallet. A ₹100 credit must keep the payment page open.
+        if(credited >= 200){
           await trackProfitEvent('DEPOSIT',S.phone,credited);
           // Payment succeeded: immediately leave the payment iframe and return
           // to the main dashboard before any later redirect can take place.
@@ -3445,6 +3445,16 @@ select:focus{
       shell.querySelector('#fanTanFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
       frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
       frame.src=url;
+
+      // Fan Tan only: automatically enter fullscreen after the game is launched.
+      // The browser may block fullscreen until the user interacts with the page.
+      const requestFullscreen=shell.requestFullscreen || shell.webkitRequestFullscreen;
+      if(requestFullscreen){
+        setTimeout(()=>{
+          const result=requestFullscreen.call(shell);
+          if(result && result.catch) result.catch(()=>{});
+        },150);
+      }
     }
 
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
