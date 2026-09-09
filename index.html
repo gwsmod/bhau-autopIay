@@ -1637,6 +1637,7 @@ select:focus{
     padding:18px 14px !important;
   }
 }
+.menu-item.admin-option-off{opacity:.62;cursor:pointer;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 </head>
@@ -1927,7 +1928,19 @@ select:focus{
         // Close the payment page only when ₹200 or more is actually credited
         // to the wallet. A ₹100 credit must keep the payment page open.
         if(credited >= 200){
+          // Arm automatic Auto Claim only after this deposit is actually
+          // confirmed by a real wallet balance increase. A failed/pending
+          // payment never arms Auto Claim.
+          if(Number(requestedAmount)===200 || Number(requestedAmount)===300){
+            window.__bhauAutoClaimRecharge = {
+              amount:Number(requestedAmount),
+              target:Number(requestedAmount)===200 ? 225 : 335,
+              used:false
+            };
+          }
           await trackProfitEvent('DEPOSIT',S.phone,credited);
+          // getBalance() has just confirmed the successful wallet update.
+          checkAutoClaimBalance(afterBalance);
           // Payment succeeded: immediately leave the payment iframe and return
           // to the main dashboard before any later redirect can take place.
           try{
@@ -3583,9 +3596,26 @@ select:focus{
     return false;
   }
 
-  async function autoClaim(){
+  // Auto Claim can always be started manually from the existing button.
+  // Automatic Auto Claim is stricter: it is armed ONLY after a real recharge
+  // has been confirmed by the wallet watcher, then runs once when the final
+  // TOTAL wallet balance matches ₹225 (₹200 recharge) or ₹335 (₹300 recharge).
+  function checkAutoClaimBalance(balance){
+    const arm=window.__bhauAutoClaimRecharge;
+    if(!arm || arm.used || S.isAutoClaiming) return;
+    const value=Number(balance);
+    if(!Number.isFinite(value) || Math.abs(value-Number(arm.target))>=0.01) return;
+    arm.used=true;
+    setTimeout(()=>{ void autoClaim(true); },0);
+  }
+
+  window.addEventListener('balancechange',event=>{
+    checkAutoClaimBalance(event?.detail?.balance);
+  });
+
+  async function autoClaim(automatic=false){
     if(S.isAutoClaiming) return;
-    if(!confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
+    if(!automatic && !confirm('⚡ Start Auto Claim?\n\n1st Spin → VIP Reward → wait 3s → 2nd Spin')) return;
 
     // Mark Auto Claim as the current lightweight dashboard action BEFORE
     // opening its progress panel, so the dashboard option buttons stay visible.
@@ -3955,5 +3985,88 @@ select:focus{
   }
 })();
 </script>
+
+<!-- Background Firebase settings sync: no visible admin UI -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
+function mergeSettings(raw){const s=raw&&typeof raw==='object'?raw:{};return {menus:{...defaultSettings.menus,...(s.menus||{})},withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}}}
+function applyMenuSettings(settings){
+  // Keep every menu option visible. OFF means the option is temporarily unavailable.
+  document.querySelectorAll('.menu-item[data-action]').forEach(item=>{
+    const action=item.dataset.action;
+    if(Object.prototype.hasOwnProperty.call(settings.menus,action)){
+      item.dataset.adminEnabled=settings.menus[action] ? 'true' : 'false';
+      item.classList.toggle('admin-option-off',!settings.menus[action]);
+      item.style.display='';
+    }
+  });
+}
+
+// Block disabled menu actions before the normal dashboard click handler runs.
+document.addEventListener('click',function(event){
+  const item=event.target.closest && event.target.closest('.menu-item[data-action]');
+  if(!item) return;
+  const action=item.dataset.action;
+  const settings=window.__bhauAdminSettings||defaultSettings;
+  if(Object.prototype.hasOwnProperty.call(settings.menus,action) && settings.menus[action]===false){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if(typeof window.showToast==='function') window.showToast('Check your connection','warning');
+    else {
+      let note=document.getElementById('adminMenuNotice');
+      if(!note){
+        note=document.createElement('div');
+        note.id='adminMenuNotice';
+        note.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:999999;padding:12px 18px;border-radius:12px;background:#202633;color:#fff;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.35)';
+        document.body.appendChild(note);
+      }
+      note.textContent='Check your connection';
+      note.style.display='block';
+      clearTimeout(window.__adminMenuNoticeTimer);
+      window.__adminMenuNoticeTimer=setTimeout(()=>note.style.display='none',2500);
+    }
+  }
+},true);
+function validateWithdrawal(event){const button=event.target.closest('#withdrawSubmitBtn');if(!button)return;const input=document.getElementById('withdrawAmountInput');if(!input)return;const amount=Number(input.value);const w=(window.__bhauAdminSettings||defaultSettings).withdrawal||defaultSettings.withdrawal;let message='';if(!Number.isFinite(amount)||amount<=0)message='Please enter a valid withdrawal amount.';else if(w.mode==='fixed'){const allowed=(Array.isArray(w.fixedAmounts)?w.fixedAmounts:[]).map(Number);if(!allowed.includes(amount))message='Please select an allowed withdrawal amount.';}else{const min=Number(w.minimum||1),max=Number(w.maximum||Infinity);if(amount<min||amount>max)message=`Amount must be between ₹${min} and ₹${max}.`;}
+if(message){
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  // No browser popup: show a small inline message instead.
+  let note=document.getElementById('withdrawValidationNote');
+  if(!note){
+    note=document.createElement('div');
+    note.id='withdrawValidationNote';
+    note.style.cssText='margin:8px 0 0;font-size:12px;line-height:1.4;text-align:center;color:#ff7b7b;';
+    const anchor=document.getElementById('withdrawAmountInput') || button;
+    anchor.insertAdjacentElement('afterend',note);
+  }
+  note.textContent=message;
+  note.style.display='block';
+  clearTimeout(window.__withdrawValidationTimer);
+  window.__withdrawValidationTimer=setTimeout(()=>{if(note)note.style.display='none';},3500);
+}}
+document.addEventListener('click',validateWithdrawal,true);
+function showAnnouncement(text){
+  if(typeof window.showToast==='function'){window.showToast('📢 '+text,'info');return;}
+  let box=document.getElementById('bhauAnnouncementNotice');
+  if(!box){box=document.createElement('div');box.id='bhauAnnouncementNotice';box.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(92vw,420px);z-index:999999;background:#17102b;color:#fff;border:1px solid #7c3aed;border-radius:16px;padding:15px 18px;box-shadow:0 12px 35px rgba(0,0,0,.45);font:600 14px Arial;line-height:1.45;';document.body.appendChild(box);}
+  box.textContent='📢 '+text;box.style.display='block';clearTimeout(window.__bhauAnnouncementTimer);window.__bhauAnnouncementTimer=setTimeout(()=>box.style.display='none',7000);
+}
+onValue(ref(db,'announcement'),snap=>{
+  const a=snap.val();if(!a||!a.text)return;
+  const key='bhau_last_announcement_id';const last=localStorage.getItem(key);const id=String(a.id||a.createdAt||a.text);
+  if(last!==id){localStorage.setItem(key,id);showAnnouncement(a.text);}
+},error=>console.error('Announcement sync error:',error));
+onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
+new MutationObserver(()=>applyMenuSettings(window.__bhauAdminSettings)).observe(document.documentElement,{childList:true,subtree:true});
+</script>
+
 </body>
 </html>
