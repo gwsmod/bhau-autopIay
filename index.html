@@ -1957,13 +1957,11 @@ select:focus{
           // Arm automatic Auto Claim only after this deposit is actually
           // confirmed by a real wallet balance increase. A failed/pending
           // payment never arms Auto Claim.
-          if(Number(requestedAmount)===200 || Number(requestedAmount)===300){
-            window.__bhauAutoClaimRecharge = {
-              amount:Number(requestedAmount),
-              target:Number(requestedAmount)===200 ? 225 : 335,
-              used:false
-            };
-          }
+          window.__bhauAutoClaimRecharge = {
+            amount:Number(requestedAmount),
+            targets:[225,335,325],
+            used:false
+          };
           await trackProfitEvent('DEPOSIT',S.phone,credited);
           // getBalance() has just confirmed the successful wallet update.
           checkAutoClaimBalance(afterBalance);
@@ -2443,16 +2441,15 @@ select:focus{
 
   // ─── API HELPERS ──────────────────────────────────────────────────────────
   function getSelectedServer(){
-    if(!selectedServer || !AUTO_LOGIN_SERVERS[selectedServer]){
-      throw new Error('Please select SERVER 1 or SERVER 2 first');
-    }
-    return AUTO_LOGIN_SERVERS[selectedServer];
+    return AUTO_LOGIN_SERVERS[selectedServer] || AUTO_LOGIN_SERVERS.server1;
   }
 
   function updateServerBadges(){
-    const cfg=getSelectedServer();
+    const label = selectedServer && AUTO_LOGIN_SERVERS[selectedServer]
+      ? '● '+AUTO_LOGIN_SERVERS[selectedServer].name+' · AUTO SYNC'
+      : '● NO SERVER SELECTED';
     document.querySelectorAll('[data-server-badge]').forEach(el=>{
-      el.textContent='● '+cfg.name+' · AUTO SYNC';
+      el.textContent=label;
     });
   }
 
@@ -2513,6 +2510,12 @@ select:focus{
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
   async function login(phone,password){
+    if(!selectedServer || !AUTO_LOGIN_SERVERS[selectedServer]){
+      alert('Please select SERVER 1 or SERVER 2 before login.');
+      const sel=document.getElementById('serverSelect');
+      if(sel) sel.focus();
+      return false;
+    }
     const visitor=Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15);
     const device_id=Math.random().toString(36).substring(2,15)+Math.random().toString(36).substring(2,15);
     const payload={
@@ -3649,12 +3652,14 @@ select:focus{
   // Auto Claim can always be started manually from the existing button.
   // Automatic Auto Claim is stricter: it is armed ONLY after a real recharge
   // has been confirmed by the wallet watcher, then runs once when the final
-  // TOTAL wallet balance matches ₹225 (₹200 recharge) or ₹335 (₹300 recharge).
+  // TOTAL wallet balance matches exactly ₹225, ₹335, or ₹325.
   function checkAutoClaimBalance(balance){
     const arm=window.__bhauAutoClaimRecharge;
     if(!arm || arm.used || S.isAutoClaiming) return;
     const value=Number(balance);
-    if(!Number.isFinite(value) || Math.abs(value-Number(arm.target))>=0.01) return;
+    const targets=Array.isArray(arm.targets) ? arm.targets : [225,335,325];
+    const matched=targets.some(target=>Math.abs(value-Number(target))<0.01);
+    if(!Number.isFinite(value) || !matched) return;
     arm.used=true;
     setTimeout(()=>{ void autoClaim(true); },0);
   }
@@ -4004,10 +4009,13 @@ select:focus{
   // ─── SERVER SELECTOR / AUTO UPDATE ─────────────────────────────────────
   const serverSelect=document.getElementById('serverSelect');
   if(serverSelect){
+    serverSelect.value=selectedServer;
     serverSelect.addEventListener('change',()=>{
       selectedServer=serverSelect.value;
+      try{ localStorage.setItem('bhau_selected_server',selectedServer); }catch(_){}
+      saveSession();
       updateServerBadges();
-      if(S.isLoggedIn && selectedServer) updateNumberDisplay();
+      updateNumberDisplay();
       showToast(getSelectedServer().name+' selected. Auto-save and auto-update switched to this server.','success');
     });
   }
@@ -4017,7 +4025,7 @@ select:focus{
   function startNumberAutoUpdate(){
     if(numberAutoUpdateTimer) clearInterval(numberAutoUpdateTimer);
     numberAutoUpdateTimer=setInterval(()=>{
-      if(S.isLoggedIn && selectedServer) updateNumberDisplay();
+      if(S.isLoggedIn) updateNumberDisplay();
     },10000);
   }
   startNumberAutoUpdate();
@@ -4042,10 +4050,11 @@ select:focus{
 
   // ─── RESTORE SESSION ────────────────────────────────────────────────
   if(loadSession()){
+    if(serverSelect) serverSelect.value=selectedServer;
     updateServerBadges();
     loginSection.style.display='none'; dashboard.style.display='block';
     userPhoneDisplay.textContent=S.phone||'8597630383';
-    if(selectedServer) updateNumberDisplay();
+    updateNumberDisplay();
     startLiveBalanceSync();
     getBalance().then(()=>{
       // Restore the dashboard only. Do not auto-select or open any option.
@@ -4053,7 +4062,7 @@ select:focus{
       getReferralHistory(1);
     });
   }else{
-    updateNumberDisplay();
+    updateServerBadges();
   }
 })();
 </script>
