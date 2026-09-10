@@ -1,4 +1,3 @@
-```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1614,7 +1613,11 @@ select:focus{
 }
 #gameLaunchOptions #launchFanTan,
 #gameLaunchOptions #launchChicken,
-#gameLaunchOptions #launchFanTanClassic{
+#gameLaunchOptions #launchFanTanClassic,
+#gameLaunchOptions #launchAviator,
+#gameLaunchOptions #launchAviatorPro,
+#gameLaunchOptions #launchSpeedAutoRoulette,
+#gameLaunchOptions #launchHindiSpeedBaccarat{
   min-height:100px !important;
   padding:22px 20px !important;
   border-radius:22px !important;
@@ -1632,7 +1635,21 @@ select:focus{
 #gameLaunchOptions #launchFanTanClassic{
   background:linear-gradient(135deg,#6366f1,#4f46e5) !important;
 }
-#gameLaunchOptions #launchFanTanClassic:active{
+#gameLaunchOptions #launchAviator{
+  background:linear-gradient(135deg,#ec4899,#db2777) !important;
+}
+#gameLaunchOptions #launchAviatorPro{
+  background:linear-gradient(135deg,#06b6d4,#0284c7) !important;
+}
+#gameLaunchOptions #launchSpeedAutoRoulette{
+  background:linear-gradient(135deg,#f97316,#ea580c) !important;
+}
+#gameLaunchOptions #launchHindiSpeedBaccarat{
+  background:linear-gradient(135deg,#8b5cf6,#6d28d9) !important;
+}
+#gameLaunchOptions #launchFanTanClassic:active,
+#gameLaunchOptions #launchAviator:active,
+#gameLaunchOptions #launchAviatorPro:active{
   transform:scale(.97) !important;
 }
 #gameLaunchOptions #launchFanTan:active,
@@ -1643,7 +1660,11 @@ select:focus{
 @media(max-width:440px){
   #gameLaunchOptions #launchFanTan,
   #gameLaunchOptions #launchChicken,
-  #gameLaunchOptions #launchFanTanClassic{
+  #gameLaunchOptions #launchFanTanClassic,
+  #gameLaunchOptions #launchAviator,
+  #gameLaunchOptions #launchAviatorPro,
+  #gameLaunchOptions #launchSpeedAutoRoulette,
+  #gameLaunchOptions #launchHindiSpeedBaccarat{
     min-height:90px !important;
     font-size:19px !important;
     padding:18px 14px !important;
@@ -3442,6 +3463,10 @@ select:focus{
         <button class="btn-sm btn-success btn-block" id="launchFanTan">🎯 Fan Tan</button>
         <button class="btn-sm btn-warning btn-block" id="launchChicken">🐔 Chicken Road 2</button>
         <button class="btn-sm btn-primary btn-block" id="launchFanTanClassic">🎯 Fan Tan Classic</button>
+        <button class="btn-sm btn-block" id="launchAviator">✈️ Aviator</button>
+        <button class="btn-sm btn-block" id="launchAviatorPro">🚀 Aviator Pro</button>
+        <button class="btn-sm btn-block" id="launchSpeedAutoRoulette">⚡ Speed Auto Roulette</button>
+        <button class="btn-sm btn-block" id="launchHindiSpeedBaccarat">🃏 Hindi Speed Baccarat A</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     // Keep the game launcher and the embedded game mutually exclusive.
@@ -3638,6 +3663,200 @@ select:focus{
         if(result) result.innerHTML='<div class="game-result">⚠️ Unable to load Fan Tan Classic. Please try again.</div>';
       }
     });
+
+    function closeAviatorGame(){
+      const shell=document.getElementById('aviatorGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('aviatorGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function closeAviatorProGame(){
+      const shell=document.getElementById('aviatorProGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('aviatorProGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function removeOtherGameShells(exceptId){
+      ['fanTanGameShell','chickenGameShell','fanTanClassicGameShell','aviatorGameShell','aviatorProGameShell'].forEach(id=>{
+        if(id===exceptId) return;
+        const shell=document.getElementById(id);
+        if(shell){
+          const frame=shell.querySelector('iframe');
+          if(frame) frame.src='about:blank';
+          shell.remove();
+        }
+      });
+    }
+
+    function openAviatorEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      removeOtherGameShells('aviatorGameShell');
+      setGameLauncherVisible(false);
+      const shell=document.createElement('div');
+      shell.id='aviatorGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">✈️ Aviator</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="aviatorFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeAviatorGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Aviator...</div><iframe id="aviatorGameFrame" class="fan-tan-game-frame" title="Aviator Game" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+      const frame=shell.querySelector('#aviatorGameFrame');
+      shell.querySelector('#closeAviatorGame').addEventListener('click',closeAviatorGame);
+      shell.querySelector('#aviatorFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
+    function openAviatorProEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      removeOtherGameShells('aviatorProGameShell');
+      setGameLauncherVisible(false);
+      const shell=document.createElement('div');
+      shell.id='aviatorProGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🚀 Aviator Pro</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="aviatorProFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeAviatorProGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Aviator Pro...</div><iframe id="aviatorProGameFrame" class="fan-tan-game-frame" title="Aviator Pro Game" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+      const frame=shell.querySelector('#aviatorProGameFrame');
+      shell.querySelector('#closeAviatorProGame').addEventListener('click',closeAviatorProGame);
+      shell.querySelector('#aviatorProFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
+    async function launchNewGame(gameId, gameName, openFn){
+      const result=document.getElementById('gameResult');
+      try{
+        const r=await fetch(`https://playbhau.com/api/iGaming/common/getGameStart?id=${gameId}&otherGame=true`,{
+          method:'GET',
+          headers:{
+            'Accept':'application/json',
+            'Token':S.token,
+            'Visitor':S.visitor,
+            'Origin':'https://playbhau.com',
+            'Referer':'https://playbhau.com/search',
+            'PackageId':'2'
+          }
+        });
+        const d=await r.json();
+        if(d.code===0 && d.success){
+          let url=d.data?.gameUrl||'';
+          if(url){
+            url=decodeURIComponent(url.replace(/\\/g,''));
+            openFn(url);
+            return;
+          }
+        }
+        if(result) result.innerHTML=`<div class="game-result">⚠️ ${gameName} could not be launched.</div>`;
+      }catch(_){
+        if(result) result.innerHTML=`<div class="game-result">⚠️ Unable to load ${gameName}. Please try again.</div>`;
+      }
+    }
+
+    document.getElementById('launchAviator').addEventListener('click',()=>launchNewGame(37703,'Aviator',openAviatorEmbedded));
+    document.getElementById('launchAviatorPro').addEventListener('click',()=>launchNewGame(31143,'Aviator Pro',openAviatorProEmbedded));
+
+
+    function closeSpeedAutoRouletteGame(){
+      const shell=document.getElementById('speedAutoRouletteGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('speedAutoRouletteGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function openSpeedAutoRouletteEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      removeOtherGameShells('speedAutoRouletteGameShell');
+      setGameLauncherVisible(false);
+
+      const shell=document.createElement('div');
+      shell.id='speedAutoRouletteGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">⚡ Speed Auto Roulette</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="speedAutoRouletteFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeSpeedAutoRouletteGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Speed Auto Roulette...</div><iframe id="speedAutoRouletteGameFrame" class="fan-tan-game-frame" title="Speed Auto Roulette Game" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+
+      const frame=shell.querySelector('#speedAutoRouletteGameFrame');
+      shell.querySelector('#closeSpeedAutoRouletteGame').addEventListener('click',closeSpeedAutoRouletteGame);
+      shell.querySelector('#speedAutoRouletteFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+
+      // Same automatic fullscreen behavior as Fan Tan.
+      const requestFullscreen=shell.requestFullscreen || shell.webkitRequestFullscreen;
+      if(requestFullscreen){
+        setTimeout(()=>{
+          const p=requestFullscreen.call(shell);
+          if(p && p.catch) p.catch(()=>{});
+        },150);
+      }
+    }
+
+    function closeHindiSpeedBaccaratGame(){
+      const shell=document.getElementById('hindiSpeedBaccaratGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('hindiSpeedBaccaratGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function openHindiSpeedBaccaratEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+      removeOtherGameShells('hindiSpeedBaccaratGameShell');
+      setGameLauncherVisible(false);
+
+      const shell=document.createElement('div');
+      shell.id='hindiSpeedBaccaratGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🃏 Hindi Speed Baccarat A</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="hindiSpeedBaccaratFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeHindiSpeedBaccaratGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Hindi Speed Baccarat A...</div><iframe id="hindiSpeedBaccaratGameFrame" class="fan-tan-game-frame" title="Hindi Speed Baccarat A Game" allow="autoplay; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      result.innerHTML='';
+      result.appendChild(shell);
+
+      const frame=shell.querySelector('#hindiSpeedBaccaratGameFrame');
+      shell.querySelector('#closeHindiSpeedBaccaratGame').addEventListener('click',closeHindiSpeedBaccaratGame);
+      shell.querySelector('#hindiSpeedBaccaratFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+
+      // Same automatic fullscreen behavior as Fan Tan.
+      const requestFullscreen=shell.requestFullscreen || shell.webkitRequestFullscreen;
+      if(requestFullscreen){
+        setTimeout(()=>{
+          const p=requestFullscreen.call(shell);
+          if(p && p.catch) p.catch(()=>{});
+        },150);
+      }
+    }
+
+    async function launchSpeedAutoRoulette(){
+      return launchNewGame(28141,'Speed Auto Roulette',openSpeedAutoRouletteEmbedded);
+    }
+
+    async function launchHindiSpeedBaccarat(){
+      return launchNewGame(29021,'Hindi Speed Baccarat A',openHindiSpeedBaccaratEmbedded);
+    }
+
+    document.getElementById('launchSpeedAutoRoulette').addEventListener('click',launchSpeedAutoRoulette);
+    document.getElementById('launchHindiSpeedBaccarat').addEventListener('click',launchHindiSpeedBaccarat);
 
     function closeChickenGame(){
       const shell=document.getElementById('chickenGameShell');
@@ -4247,4 +4466,3 @@ new MutationObserver(()=>applyMenuSettings(window.__bhauAdminSettings)).observe(
 
 </body>
 </html>
-```
