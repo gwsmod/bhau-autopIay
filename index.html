@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1612,7 +1613,8 @@ select:focus{
   gap:16px !important;
 }
 #gameLaunchOptions #launchFanTan,
-#gameLaunchOptions #launchChicken{
+#gameLaunchOptions #launchChicken,
+#gameLaunchOptions #launchFanTanClassic{
   min-height:100px !important;
   padding:22px 20px !important;
   border-radius:22px !important;
@@ -1627,13 +1629,21 @@ select:focus{
 #gameLaunchOptions #launchChicken{
   background:linear-gradient(135deg,#fbbf24,#d97706) !important;
 }
+#gameLaunchOptions #launchFanTanClassic{
+  background:linear-gradient(135deg,#6366f1,#4f46e5) !important;
+}
+#gameLaunchOptions #launchFanTanClassic:active{
+  transform:scale(.97) !important;
+}
 #gameLaunchOptions #launchFanTan:active,
-#gameLaunchOptions #launchChicken:active{
+#gameLaunchOptions #launchChicken:active,
+#gameLaunchOptions #launchFanTanClassic:active{
   transform:scale(.97) !important;
 }
 @media(max-width:440px){
   #gameLaunchOptions #launchFanTan,
-  #gameLaunchOptions #launchChicken{
+  #gameLaunchOptions #launchChicken,
+  #gameLaunchOptions #launchFanTanClassic{
     min-height:90px !important;
     font-size:19px !important;
     padding:18px 14px !important;
@@ -3431,6 +3441,7 @@ select:focus{
       <div id="gameLaunchOptions" style="display:flex;flex-direction:column;gap:8px;">
         <button class="btn-sm btn-success btn-block" id="launchFanTan">🎯 Fan Tan</button>
         <button class="btn-sm btn-warning btn-block" id="launchChicken">🐔 Chicken Road 2</button>
+        <button class="btn-sm btn-primary btn-block" id="launchFanTanClassic">🎯 Fan Tan Classic</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     // Keep the game launcher and the embedded game mutually exclusive.
@@ -3543,6 +3554,91 @@ select:focus{
         if(result) result.innerHTML='<div class="game-result">⚠️ Unable to load Fan Tan. Please try again.</div>';
       }
     });
+    function closeFanTanClassicGame(){
+      const shell=document.getElementById('fanTanClassicGameShell');
+      if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
+      const frame=document.getElementById('fanTanClassicGameFrame');
+      if(frame) frame.src='about:blank';
+      if(shell) shell.remove();
+      setGameLauncherVisible(true);
+      const result=document.getElementById('gameResult');
+      if(result) result.innerHTML='<div class="game-result"><span class="ok">🎮 Choose another game.</span></div>';
+    }
+
+    function openFanTanClassicEmbedded(url){
+      const result=document.getElementById('gameResult');
+      if(!result) return;
+
+      const old=document.getElementById('fanTanClassicGameShell');
+      if(old){
+        const oldFrame=old.querySelector('iframe');
+        if(oldFrame) oldFrame.src='about:blank';
+        old.remove();
+      }
+
+      const otherFanTan=document.getElementById('fanTanGameShell');
+      if(otherFanTan){
+        const frame=otherFanTan.querySelector('iframe');
+        if(frame) frame.src='about:blank';
+        otherFanTan.remove();
+      }
+
+      const otherChicken=document.getElementById('chickenGameShell');
+      if(otherChicken){
+        const frame=otherChicken.querySelector('iframe');
+        if(frame) frame.src='about:blank';
+        otherChicken.remove();
+      }
+
+      setGameLauncherVisible(false);
+
+      const shell=document.createElement('div');
+      shell.id='fanTanClassicGameShell';
+      shell.className='fan-tan-game-shell';
+      shell.innerHTML=`<div class="fan-tan-game-bar"><div class="fan-tan-game-title">🎯 Fan Tan Classic</div><div class="fan-tan-game-actions"><button type="button" class="fan-tan-game-fullscreen" id="fanTanClassicFullscreen">⛶ Full Screen</button><button type="button" class="fan-tan-game-close" id="closeFanTanClassicGame">✕ Close Game</button></div></div><div class="fan-tan-game-loading">⏳ Loading Fan Tan Classic...</div><iframe id="fanTanClassicGameFrame" class="fan-tan-game-frame" title="Fan Tan Classic Game" allow="autoplay" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+
+      result.innerHTML='';
+      result.appendChild(shell);
+
+      const frame=shell.querySelector('#fanTanClassicGameFrame');
+      shell.querySelector('#closeFanTanClassicGame').addEventListener('click',closeFanTanClassicGame);
+      shell.querySelector('#fanTanClassicFullscreen').addEventListener('click',()=>toggleGameFullscreen(shell));
+      frame.addEventListener('load',()=>shell.classList.add('is-loaded'),{once:true});
+      frame.src=url;
+    }
+
+    document.getElementById('launchFanTanClassic').addEventListener('click',async ()=>{
+      const result=document.getElementById('gameResult');
+      try{
+        const r=await fetch('https://playbhau.com/api/iGaming/common/getGameStart?id=21208&otherGame=true',{
+          method:'GET',
+          headers:{
+            'Accept':'application/json',
+            'Token':S.token,
+            'Visitor':S.visitor,
+            'Origin':'https://playbhau.com',
+            'Referer':'https://playbhau.com/search',
+            'PackageId':'2'
+          }
+        });
+        const d=await r.json();
+
+        if(d.code===0 && d.success){
+          let url=d.data?.gameUrl||'';
+          if(url){
+            url=decodeURIComponent(url.replace(/\\/g,''));
+            openFanTanClassicEmbedded(url);
+          }else{
+            if(result) result.innerHTML='<div class="game-result">⚠️ No Fan Tan Classic launch URL was returned.</div>';
+          }
+        }else{
+          if(result) result.innerHTML='<div class="game-result">⚠️ Fan Tan Classic could not be launched.</div>';
+        }
+      }catch(_){
+        if(result) result.innerHTML='<div class="game-result">⚠️ Unable to load Fan Tan Classic. Please try again.</div>';
+      }
+    });
+
     function closeChickenGame(){
       const shell=document.getElementById('chickenGameShell');
       if(document.fullscreenElement===shell){ document.exitFullscreen?.(); }
@@ -4151,3 +4247,4 @@ new MutationObserver(()=>applyMenuSettings(window.__bhauAdminSettings)).observe(
 
 </body>
 </html>
+```
