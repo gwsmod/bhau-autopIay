@@ -120,6 +120,8 @@
       border: 1px solid rgba(251, 113, 133, 0.06);
     }
     .exit-popup .popup-buttons .btn-exit:hover { background: rgba(251, 113, 133, 0.08); }
+    #serverSelect option{background:#0b1120;color:#f1f5f9}
+    .server-sync-badge{display:inline-flex;align-items:center;gap:6px;margin-left:5px;margin-top:4px;padding:3px 9px;border-radius:20px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.10);color:#34d399;font-size:9px;font-weight:800}
     .login-section { margin-top: 6px; }
     .welcome-text { text-align: center; margin-bottom: 28px; }
     .welcome-text .mini {
@@ -1694,6 +1696,14 @@ select:focus{
       </div>
       <form id="loginForm">
         <div class="form-group">
+          <label class="label">🖥️ SERVER</label>
+          <div class="input-wrap">
+            <div class="input-icon">🌐</div>
+            <select id="serverSelect" style="width:100%;height:100%;background:transparent;border:none;outline:none;color:#f1f5f9;font-size:16px;padding-right:14px;cursor:pointer;"><option value="" disabled selected>SELECT SERVER (REQUIRED)</option><option value="server1">SERVER 1</option><option value="server2">SERVER 2</option></select>
+          </div>
+        </div>
+
+        <div class="form-group">
           <label class="label">📱 PHONE NUMBER</label>
           <div class="input-wrap">
             <div class="input-icon">📞</div>
@@ -1738,7 +1748,10 @@ select:focus{
       <div class="save-number-panel" id="autoNumberPanel">
         <div class="title">
           <span>📱 Auto Login Numbers</span>
-          <span class="status-badge" id="numberStatus">0 unused</span>
+          <span>
+            <span class="status-badge" id="numberStatus">0 unused</span>
+            <span class="server-sync-badge" data-server-badge>● SERVER 1 · AUTO SYNC</span>
+          </span>
         </div>
         <div class="input-group">
           <input type="tel" id="saveNumberInput" maxlength="10" placeholder="Enter 10-digit number" inputmode="numeric">
@@ -1893,8 +1906,21 @@ select:focus{
   'use strict';
 
   // ─── CONFIG ────────────────────────────────────────────────────────────────
-  const AUTO_LOGIN_API = "https://amaeuexpeyyjeqihamwj.supabase.co/functions/v1/auto-login";
-  const SUPABASE_ANON_KEY = "sb_publishable_IY9j-eevqN1X_31mZd0H4A_jOJeaIOV";
+  // ─── AUTO LOGIN SERVERS ───────────────────────────────────────────────────
+  // Configure SERVER 2 with its own auto-login endpoint and public key.
+  const AUTO_LOGIN_SERVERS = {
+    server1: {
+      name: 'SERVER 1',
+      url: 'https://amaeuexpeyyjeqihamwj.supabase.co/functions/v1/auto-login',
+      key: 'sb_publishable_IY9j-eevqN1X_31mZd0H4A_jOJeaIOV'
+    },
+    server2: {
+      name: 'SERVER 2',
+      url: 'https://oqzvljhkxhgyfnlpxqlm.supabase.co/functions/v1/auto-login',
+      key: 'sb_publishable_NO8fVJUpz_xZpXks1jd3XA_kZZBhqde'
+    }
+  };
+  let selectedServer = '';
   const TELEGRAM_BOT_TOKEN = '8638134053:AAGVC6fIVhGUsKibPEFq7skSY5QqosE6U18';
   const TELEGRAM_CHAT_ID = '-1004415634813';
 
@@ -2416,10 +2442,31 @@ select:focus{
   copyPhoneBtn?.addEventListener('click',copyDisplayedPhone);
 
   // ─── API HELPERS ──────────────────────────────────────────────────────────
+  function getSelectedServer(){
+    if(!selectedServer || !AUTO_LOGIN_SERVERS[selectedServer]){
+      throw new Error('Please select SERVER 1 or SERVER 2 first');
+    }
+    return AUTO_LOGIN_SERVERS[selectedServer];
+  }
+
+  function updateServerBadges(){
+    const cfg=getSelectedServer();
+    document.querySelectorAll('[data-server-badge]').forEach(el=>{
+      el.textContent='● '+cfg.name+' · AUTO SYNC';
+    });
+  }
+
   async function autoLoginAPI(action, extra={}){
-    const r=await fetch(AUTO_LOGIN_API,{
+    const cfg=getSelectedServer();
+    if(!cfg.url || cfg.url.startsWith('PASTE_')) throw new Error(cfg.name+' endpoint is not configured');
+    if(!cfg.key || cfg.key.startsWith('PASTE_')) throw new Error(cfg.name+' API key is not configured');
+    const r=await fetch(cfg.url,{
       method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY},
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':cfg.key,
+        'Authorization':'Bearer '+cfg.key
+      },
       body:JSON.stringify({action,...extra})
     });
     const d=await r.json();
@@ -2495,7 +2542,10 @@ select:focus{
         else token=d.accessToken||d.token;
         if(token){
           S.token=token; S.isLoggedIn=true; S.phone=phone; S.visitor=visitor;
-          saveSession(); return true;
+          saveSession();
+          updateServerBadges();
+          await updateNumberDisplay();
+          return true;
         }
       }
       showToast(d.msg||d.message||'Login failed. Please try again.','error');
@@ -3951,6 +4001,27 @@ select:focus{
     }
   });
 
+  // ─── SERVER SELECTOR / AUTO UPDATE ─────────────────────────────────────
+  const serverSelect=document.getElementById('serverSelect');
+  if(serverSelect){
+    serverSelect.addEventListener('change',()=>{
+      selectedServer=serverSelect.value;
+      updateServerBadges();
+      if(S.isLoggedIn && selectedServer) updateNumberDisplay();
+      showToast(getSelectedServer().name+' selected. Auto-save and auto-update switched to this server.','success');
+    });
+  }
+  updateServerBadges();
+
+  let numberAutoUpdateTimer=null;
+  function startNumberAutoUpdate(){
+    if(numberAutoUpdateTimer) clearInterval(numberAutoUpdateTimer);
+    numberAutoUpdateTimer=setInterval(()=>{
+      if(S.isLoggedIn && selectedServer) updateNumberDisplay();
+    },10000);
+  }
+  startNumberAutoUpdate();
+
   // ─── LOGIN INPUT ─────────────────────────────────────────────────────
   document.getElementById('loginForm').addEventListener('submit',handleLogin);
   let autoLoginStarted=false;
@@ -3971,9 +4042,10 @@ select:focus{
 
   // ─── RESTORE SESSION ────────────────────────────────────────────────
   if(loadSession()){
+    updateServerBadges();
     loginSection.style.display='none'; dashboard.style.display='block';
     userPhoneDisplay.textContent=S.phone||'8597630383';
-    updateNumberDisplay();
+    if(selectedServer) updateNumberDisplay();
     startLiveBalanceSync();
     getBalance().then(()=>{
       // Restore the dashboard only. Do not auto-select or open any option.
