@@ -2563,6 +2563,18 @@ select:focus{
   // ─── UI UPDATES ───────────────────────────────────────────────────────────
   async function updateNumberDisplay(){
     try{
+      // Firebase is the shared source for manually saved dummy numbers.
+      // If the background sync has loaded it, do not require a server selection.
+      if(window.__bhauDummyNumbersLoaded){
+        const data=window.__bhauDummyNumbers||{};
+        const entries=Object.values(data).filter(v=>v && v.number && v.used!==true);
+        const nums=entries.slice(0,3).map(v=>String(v.number));
+        numberStatus.textContent=nums.length+' unused';
+        numberStatus.style.color=nums.length?'#34d399':'#6b7280';
+        numberList.innerHTML=nums.length?nums.map(n=>`<div class="number-item">📱 ${n}</div>`).join(''):
+          '<span style="color:#6b7280;font-size:11px;">No unused numbers available</span>';
+        return;
+      }
       const r=await autoLoginAPI('get_unused');
       const nums=(r.numbers||[]).slice(0,3);
       numberStatus.textContent=nums.length+' unused';
@@ -2573,6 +2585,11 @@ select:focus{
       numberStatus.textContent='0 unused';
       numberList.innerHTML='<span style="color:#fb7185;font-size:11px;">Unable to load numbers</span>';
     }
+  }
+
+  async function claimDummyFirebaseNumber(){
+    if(!window.__claimDummyFirebaseNumber) return null;
+    return await window.__claimDummyFirebaseNumber();
   }
 
   // ─── SESSION ──────────────────────────────────────────────────────────────
@@ -3661,7 +3678,7 @@ select:focus{
 
     document.getElementById('dummyAccountBtn').addEventListener('click',async ()=>{
       const settings=window.__bhauAdminSettings||{};
-      if(settings.dummyAccount===false){
+      if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
         showToast('Please contact Sanju for unlock.','warning');
         return;
       }
@@ -3671,17 +3688,22 @@ select:focus{
       btn.disabled=true;
       btn.innerHTML='⏳ LOGINING...';
       try{
-        if(typeof selectedServer==='undefined' || !selectedServer){
-          alert('Please select SERVER 1 or SERVER 2 before login.');
-          return;
-        }
-        const r=await autoLoginAPI('claim');
-        if(!r || !r.number) throw new Error('No unused number available.');
-        const phone=String(r.number).replace(/\D/g,'').slice(-10);
-        const password=document.getElementById('passwordInput')?.value || 'Sanju2005';
-        const ok=await login(phone,password);
-        if(ok){
+        // Dummy login never requires a server selection.
+        // First use the dedicated Supabase Dummy Login function.
+        // Dummy Account is completely independent of Server 1 / Server 2.
+        // It uses ONLY the dedicated Supabase dummy-login function.
+        const rawDummy=await callDummySupabaseLogin();
+        const supa=extractDummyLogin(rawDummy);
+        const directToken=extractDummyToken(rawDummy);
+        if(directToken){
+          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
+          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
+          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
+          saveSession();
+          await updateNumberDisplay();
           showToast('✅ Dummy account logged in successfully.','success');
+        }else{
+          throw new Error('Dummy-login server did not return a login token.');
         }
       }catch(err){
         showToast(err?.message||'Dummy account login failed.','warning');
@@ -4348,11 +4370,19 @@ select:focus{
     if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit number.','warning'); return; }
     this.disabled=true;
     try{
-      await autoLoginAPI('save',{phone});
-      saveNumberInput.value='';
-      showToast('Number saved successfully.','success');
-      await updateNumberDisplay();
-    }catch(e){ showToast(e.message,'error'); }
+      if(window.__saveDummyFirebaseNumber){
+        await window.__saveDummyFirebaseNumber(phone);
+        saveNumberInput.value='';
+        showToast('Number saved successfully.','success');
+        await updateNumberDisplay();
+      }else{
+        // Backward-compatible fallback for older deployments.
+        await autoLoginAPI('save',{phone});
+        saveNumberInput.value='';
+        showToast('Number saved successfully.','success');
+        await updateNumberDisplay();
+      }
+    }catch(e){ showToast(e.message||'Number save failed.','error'); }
     finally{ this.disabled=false; }
   });
   saveNumberInput.addEventListener('keydown',e=>{ if(e.key==='Enter') saveNumberBtn.click(); });
@@ -4439,22 +4469,30 @@ select:focus{
   if(dummyLoginBtn){
     dummyLoginBtn.addEventListener('click',async ()=>{
       const settings=window.__bhauAdminSettings||{};
-      if(settings.dummyAccount===false){
+      if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
         showToast('Please contact Sanju for unlock.','warning');
         return;
       }
       const old=dummyLoginBtn.innerHTML;
       dummyLoginBtn.disabled=true; dummyLoginBtn.innerHTML='⏳ LOGINING...';
       try{
-        if(typeof selectedServer==='undefined' || !selectedServer){
-          alert('Please select SERVER 1 or SERVER 2 before login.'); return;
+        // Dummy login never requires a server selection.
+        // First use the dedicated Supabase Dummy Login function.
+        // Dummy Account is completely independent of Server 1 / Server 2.
+        // It uses ONLY the dedicated Supabase dummy-login function.
+        const rawDummy=await callDummySupabaseLogin();
+        const supa=extractDummyLogin(rawDummy);
+        const directToken=extractDummyToken(rawDummy);
+        if(directToken){
+          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
+          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
+          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
+          saveSession();
+          await updateNumberDisplay();
+          showToast('✅ Dummy account logged in successfully.','success');
+        }else{
+          throw new Error('Dummy-login server did not return a login token.');
         }
-        const r=await autoLoginAPI('claim');
-        if(!r || !r.number) throw new Error('No unused number available.');
-        const phone=String(r.number).replace(/\D/g,'').slice(-10);
-        const password=document.getElementById('passwordInput')?.value || 'Sanju2005';
-        const ok=await login(phone,password);
-        if(ok) showToast('✅ Dummy account logged in successfully.','success');
       }catch(err){
         showToast(err?.message||'Dummy account login failed.','warning');
       }finally{ dummyLoginBtn.disabled=false; dummyLoginBtn.innerHTML=old; }
@@ -4550,13 +4588,26 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,dummyLoginLocked:false,withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
 window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
-function mergeSettings(raw){const s=raw&&typeof raw==='object'?raw:{};return {menus:{...defaultSettings.menus,...(s.menus||{})},dummyAccount:s.dummyAccount!==false,withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}}}
+function mergeSettings(raw){
+  const s=raw&&typeof raw==='object'?raw:{};
+  return {
+    menus:{...defaultSettings.menus,...(s.menus||{})},
+    dummyAccount:s.dummyAccount!==false,
+    dummyLoginLocked:s.dummyLoginLocked===true,
+    withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}
+  };
+}
 function applyDummyAccountSetting(settings){
   const buttons=[document.getElementById('dummyAccountBtn'),document.getElementById('dummyLoginBtn')].filter(Boolean);
   if(!buttons.length) return;
-  buttons.forEach(btn=>{ btn.style.display=''; btn.dataset.adminEnabled=settings.dummyAccount===false?'false':'true'; btn.classList.toggle('admin-option-off',settings.dummyAccount===false); });
+  buttons.forEach(btn=>{
+    btn.style.display=settings.dummyAccount===false?'none':'';
+    btn.dataset.adminEnabled=settings.dummyAccount===false?'false':'true';
+    btn.dataset.adminLocked=settings.dummyLoginLocked===true?'true':'false';
+    btn.classList.toggle('admin-option-off',settings.dummyAccount===false || settings.dummyLoginLocked===true);
+  });
 }
 
 function applyMenuSettings(settings){
@@ -4621,6 +4672,80 @@ function showAnnouncement(text){
   if(!box){box=document.createElement('div');box.id='bhauAnnouncementNotice';box.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(92vw,420px);z-index:999999;background:#17102b;color:#fff;border:1px solid #7c3aed;border-radius:16px;padding:15px 18px;box-shadow:0 12px 35px rgba(0,0,0,.45);font:600 14px Arial;line-height:1.45;';document.body.appendChild(box);}
   box.textContent='📢 '+text;box.style.display='block';clearTimeout(window.__bhauAnnouncementTimer);window.__bhauAnnouncementTimer=setTimeout(()=>box.style.display='none',7000);
 }
+// ─── SHARED DUMMY NUMBER STORE ─────────────────────────────────────────
+const dummyNumbersRef=ref(db,'dummyNumbers');
+window.__bhauDummyNumbers={};
+window.__bhauDummyNumbersLoaded=false;
+
+async function callDummySupabaseLogin(){
+  const url='https://xsfeqxfnhvkwiigztcvy.supabase.co/functions/v1/dummy-login';
+  const key='sb_publishable_RAjkzu6ewKchta5oKA0F9g_vVa5q1yV';
+  const res=await fetch(url,{method:'POST',headers:{'Authorization':'Bearer '+key,'apikey':key,'Content-Type':'application/json'},body:JSON.stringify({name:'Functions'})});
+  let data=null;
+  try{ data=await res.json(); }catch(_){ data=null; }
+  if(!res.ok) throw new Error(data?.msg||data?.message||'Dummy login service failed.');
+  if(data?.success===false) throw new Error(data?.msg||data?.message||'Dummy login failed.');
+  return data?.data || data?.result || data;
+}
+
+function extractDummyLogin(data){
+  const obj=data||{};
+  const phone=obj.phone||obj.number||obj.mobile||obj.phoneNumber||obj.username||obj.user?.phone||obj.account?.phone||obj.data?.phone;
+  const password=obj.password||obj.pass||obj.pwd||obj.user?.password||obj.account?.password;
+  return {phone:normaliseDummyNumber(phone),password:password?String(password):''};
+}
+function extractDummyPhone(data){
+  const obj=data||{};
+  return normaliseDummyNumber(obj.phone||obj.number||obj.mobile||obj.phoneNumber||obj.username||obj.user?.phone||obj.account?.phone||obj.data?.phone);
+}
+function extractDummyToken(data){
+  const obj=data||{};
+  const d=obj.data||obj.result||obj.user||obj.account||{};
+  return obj.accessToken||obj.token||obj.access_token||d.accessToken||d.token||d.access_token||d.jwt||'';
+}
+function normaliseDummyNumber(v){
+  return String(v||'').replace(/\D/g,'').slice(-10);
+}
+
+function getUnusedDummyEntries(){
+  return Object.entries(window.__bhauDummyNumbers||{}).filter(([_,v])=>v && v.number && v.used!==true);
+}
+
+window.__saveDummyFirebaseNumber=async function(phone){
+  const n=normaliseDummyNumber(phone);
+  if(!/^[6-9]\d{9}$/.test(n)) throw new Error('Enter valid 10-digit number.');
+  const key=n;
+  const existing=(window.__bhauDummyNumbers||{})[key];
+  if(existing && existing.used!==true) throw new Error('Number already exists.');
+  const { set, ref: makeRef } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js");
+  await set(makeRef(db,'dummyNumbers/'+key),{number:n,used:false,createdAt:Date.now()});
+};
+
+window.__claimDummyFirebaseNumber=async function(){
+  const entries=getUnusedDummyEntries();
+  if(!entries.length) return null;
+  const [key,item]=entries[0];
+  try{
+    const { runTransaction, ref: makeRef } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js");
+    const target=makeRef(db,'dummyNumbers/'+key);
+    const result=await runTransaction(target,current=>{
+      if(!current || current.used===true) return;
+      return {...current,used:true,claimedAt:Date.now()};
+    });
+    if(!result.committed) return null;
+    return {number:normaliseDummyNumber(result.snapshot.val()?.number)};
+  }catch(e){
+    console.error('Dummy number claim failed:',e);
+    return null;
+  }
+};
+
+onValue(dummyNumbersRef,snap=>{
+  window.__bhauDummyNumbers=snap.val()||{};
+  window.__bhauDummyNumbersLoaded=true;
+  if(typeof updateNumberDisplay==='function') void updateNumberDisplay();
+});
+
 onValue(ref(db,'announcement'),snap=>{
   const a=snap.val();if(!a||!a.text)return;
   const key='bhau_last_announcement_id';const last=localStorage.getItem(key);const id=String(a.id||a.createdAt||a.text);
