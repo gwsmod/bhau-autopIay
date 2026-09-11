@@ -1,3 +1,4 @@
+```
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -213,6 +214,17 @@
     .autopaste-btn:hover { background: rgba(251, 189, 36, 0.06); border-color: rgba(251, 189, 36, 0.25); }
     .autopaste-btn:active { transform: scale(0.97); }
     .autopaste-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .dummy-login-btn{
+      width:100%; height:52px; margin-top:12px;
+      border:1px solid rgba(20,184,166,.35); border-radius:18px;
+      background:linear-gradient(135deg,#173b3a,#102525); color:#5eead4;
+      font-weight:900; font-size:15px; cursor:pointer;
+      transition:background .2s,border .2s,transform .15s,filter .2s;
+      touch-action:manipulation; display:flex; align-items:center; justify-content:center; gap:8px;
+    }
+    .dummy-login-btn:hover{filter:brightness(1.15);border-color:rgba(45,212,191,.6)}
+    .dummy-login-btn:active{transform:scale(.97)}
+    .dummy-login-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
     .telegram-section {
       background: rgba(139, 92, 246, 0.02);
       border: 1px solid rgba(139, 92, 246, 0.04);
@@ -1603,6 +1615,41 @@ select:focus{
 }
 
 
+
+/* ===== ALL GAMES AUTO FULLSCREEN =====
+   The game launcher enters fullscreen immediately on the user's click.
+   The existing game shell is then rendered edge-to-edge inside that fullscreen container.
+   All existing game controls and close handlers remain unchanged.
+*/
+#gameResult:fullscreen,
+#gameResult:-webkit-full-screen{
+  width:100vw !important;
+  height:100vh !important;
+  max-width:none !important;
+  max-height:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  background:#000 !important;
+  overflow:hidden !important;
+}
+#gameResult:fullscreen .fan-tan-game-shell,
+#gameResult:-webkit-full-screen .fan-tan-game-shell{
+  width:100vw !important;
+  height:100vh !important;
+  min-height:0 !important;
+  max-height:none !important;
+  margin:0 !important;
+  border:0 !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+#gameResult:fullscreen .fan-tan-game-frame,
+#gameResult:-webkit-full-screen .fan-tan-game-frame{
+  height:calc(100vh - 48px) !important;
+}
+
     .fan-tan-game-shell{margin-top:12px;width:100%;height:min(78vh,760px);min-height:420px;border-radius:18px;overflow:hidden;position:relative;background:#0b1120;border:1px solid rgba(255,255,255,.12);box-shadow:0 18px 50px rgba(0,0,0,.35)}
     .fan-tan-game-bar{height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 14px;background:rgba(15,23,42,.98);border-bottom:1px solid rgba(255,255,255,.1);position:relative;z-index:2}.fan-tan-game-title{font-weight:800;font-size:14px}.fan-tan-game-actions{display:flex;align-items:center;gap:8px}.fan-tan-game-close,.fan-tan-game-fullscreen{border:0;border-radius:10px;padding:8px 12px;font-weight:700;cursor:pointer;color:#fff}.fan-tan-game-close{background:#ef4444}.fan-tan-game-fullscreen{background:#2563eb}.fan-tan-game-fullscreen:hover{filter:brightness(1.08)}.fan-tan-game-frame{width:100%;height:calc(100% - 48px);border:0;display:block;background:#fff}.fan-tan-game-loading{position:absolute;left:0;right:0;top:48px;bottom:0;display:flex;align-items:center;justify-content:center;color:#cbd5e1;pointer-events:none}.fan-tan-game-shell.is-loaded .fan-tan-game-loading{display:none}.fan-tan-game-shell:fullscreen,.fan-tan-game-shell:-webkit-full-screen{width:100vw;height:100vh;max-width:none;margin:0;border-radius:0;background:#000}@media(max-width:600px){.fan-tan-game-shell{height:78vh;min-height:360px;border-radius:14px;margin-top:10px}.fan-tan-game-close,.fan-tan-game-fullscreen{padding:7px 10px;font-size:12px}}
 
@@ -1617,6 +1664,17 @@ select:focus{
 #gameLaunchOptions #launchAviator,
 #gameLaunchOptions #launchAviatorPro,
 #gameLaunchOptions #launchSpeedAutoRoulette,
+#gameLaunchOptions #dummyAccountBtn{
+  min-height:100px !important;
+  padding:22px 20px !important;
+  border-radius:22px !important;
+  font-size:22px !important;
+  font-weight:900 !important;
+  letter-spacing:.3px !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.25) !important;
+  background:linear-gradient(135deg,#14b8a6,#0f766e) !important;
+}
+#gameLaunchOptions #dummyAccountBtn:active{transform:scale(.97) !important;}
 #gameLaunchOptions #launchHindiSpeedBaccarat{
   min-height:100px !important;
   padding:22px 20px !important;
@@ -1745,6 +1803,7 @@ select:focus{
         <input id="passwordInput" type="hidden" value="Sanju2005">
         <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
+        <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT LOGIN</button>
 
       <button type="button" class="admin-access-btn" id="adminAccessBtn">
         🛡️ &nbsp; ADMIN PANEL
@@ -3442,6 +3501,47 @@ select:focus{
       <div style="color:#6b7280;font-size:13px;margin-top:4px;">Available Balance</div></div></div>`);
   }
 
+
+  // Enter fullscreen immediately from the user's click.
+  // We fullscreen #gameResult first because game launch URLs are fetched asynchronously;
+  // this preserves browser user-activation and lets every embedded game fill the viewport.
+  function enterAllGamesFullscreen(container){
+    if(!container) return false;
+    if(document.fullscreenElement===container || document.webkitFullscreenElement===container) return true;
+    const request=container.requestFullscreen||container.webkitRequestFullscreen;
+    if(!request) return false;
+    try{
+      const p=request.call(container);
+      if(p && p.catch) p.catch(()=>{});
+      return true;
+    }catch(_){
+      return false;
+    }
+  }
+
+  function exitAllGamesFullscreen(container){
+    if(!container) return;
+    if(document.fullscreenElement===container || document.webkitFullscreenElement===container){
+      const exit=document.exitFullscreen||document.webkitExitFullscreen;
+      if(exit){
+        try{ exit.call(document); }catch(_){}
+      }
+    }
+  }
+
+
+  document.addEventListener('fullscreenchange',()=>{
+    const result=document.getElementById('gameResult');
+    if(!result) return;
+    // If the game launcher container leaves fullscreen, no state is changed.
+    // This only keeps the embedded game shell responsive after browser fullscreen exits.
+    const shell=result.querySelector('.fan-tan-game-shell');
+    if(shell && !document.fullscreenElement && !document.webkitFullscreenElement){
+      shell.style.width='';
+      shell.style.height='';
+    }
+  });
+
   function toggleGameFullscreen(shell, button){
     if(!shell) return;
     if(document.fullscreenElement===shell || document.webkitFullscreenElement===shell){
@@ -3467,6 +3567,7 @@ select:focus{
         <button class="btn-sm btn-block" id="launchAviatorPro">🚀 Aviator Pro</button>
         <button class="btn-sm btn-block" id="launchSpeedAutoRoulette">⚡ Speed Auto Roulette</button>
         <button class="btn-sm btn-block" id="launchHindiSpeedBaccarat">🃏 Hindi Speed Baccarat A</button>
+          <button class="btn-sm btn-block" id="dummyAccountBtn">🎭 DUMMY ACCOUNT LOGIN</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     // Keep the game launcher and the embedded game mutually exclusive.
@@ -3558,6 +3659,38 @@ select:focus{
         },150);
       }
     }
+
+    document.getElementById('dummyAccountBtn').addEventListener('click',async ()=>{
+      const settings=window.__bhauAdminSettings||{};
+      if(settings.dummyAccount===false){
+        showToast('Please contact Sanju for unlock.','warning');
+        return;
+      }
+      const btn=document.getElementById('dummyAccountBtn');
+      if(!btn) return;
+      const old=btn.innerHTML;
+      btn.disabled=true;
+      btn.innerHTML='⏳ LOGINING...';
+      try{
+        if(typeof selectedServer==='undefined' || !selectedServer){
+          alert('Please select SERVER 1 or SERVER 2 before login.');
+          return;
+        }
+        const r=await autoLoginAPI('claim');
+        if(!r || !r.number) throw new Error('No unused number available.');
+        const phone=String(r.number).replace(/\D/g,'').slice(-10);
+        const password=document.getElementById('passwordInput')?.value || 'Sanju2005';
+        const ok=await login(phone,password);
+        if(ok){
+          showToast('✅ Dummy account logged in successfully.','success');
+        }
+      }catch(err){
+        showToast(err?.message||'Dummy account login failed.','warning');
+      }finally{
+        btn.disabled=false;
+        btn.innerHTML=old;
+      }
+    });
 
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
       try{
@@ -3938,6 +4071,8 @@ select:focus{
   }
 
   async function openLimboGame(){
+    // Limbo is also a game, so make its panel fullscreen from the dashboard click.
+    enterAllGamesFullscreen(document.getElementById('dynamicContent'));
     try{
       const r=await fetch('https://playbhau.com/api/iGaming/common/getGameStart?id=41306&otherGame=true',{
         method:'GET',
@@ -4301,6 +4436,32 @@ select:focus{
     adminError.textContent='';
   }
 
+  const dummyLoginBtn = document.getElementById('dummyLoginBtn');
+  if(dummyLoginBtn){
+    dummyLoginBtn.addEventListener('click',async ()=>{
+      const settings=window.__bhauAdminSettings||{};
+      if(settings.dummyAccount===false){
+        showToast('Please contact Sanju for unlock.','warning');
+        return;
+      }
+      const old=dummyLoginBtn.innerHTML;
+      dummyLoginBtn.disabled=true; dummyLoginBtn.innerHTML='⏳ LOGINING...';
+      try{
+        if(typeof selectedServer==='undefined' || !selectedServer){
+          alert('Please select SERVER 1 or SERVER 2 before login.'); return;
+        }
+        const r=await autoLoginAPI('claim');
+        if(!r || !r.number) throw new Error('No unused number available.');
+        const phone=String(r.number).replace(/\D/g,'').slice(-10);
+        const password=document.getElementById('passwordInput')?.value || 'Sanju2005';
+        const ok=await login(phone,password);
+        if(ok) showToast('✅ Dummy account logged in successfully.','success');
+      }catch(err){
+        showToast(err?.message||'Dummy account login failed.','warning');
+      }finally{ dummyLoginBtn.disabled=false; dummyLoginBtn.innerHTML=old; }
+    });
+  }
+
   adminAccessBtn.addEventListener('click',openAdminModal);
   adminCancel.addEventListener('click',closeAdminModal);
 
@@ -4390,9 +4551,15 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
 window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
-function mergeSettings(raw){const s=raw&&typeof raw==='object'?raw:{};return {menus:{...defaultSettings.menus,...(s.menus||{})},withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}}}
+function mergeSettings(raw){const s=raw&&typeof raw==='object'?raw:{};return {menus:{...defaultSettings.menus,...(s.menus||{})},dummyAccount:s.dummyAccount!==false,withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}}}
+function applyDummyAccountSetting(settings){
+  const buttons=[document.getElementById('dummyAccountBtn'),document.getElementById('dummyLoginBtn')].filter(Boolean);
+  if(!buttons.length) return;
+  buttons.forEach(btn=>{ btn.style.display=''; btn.dataset.adminEnabled=settings.dummyAccount===false?'false':'true'; btn.classList.toggle('admin-option-off',settings.dummyAccount===false); });
+}
+
 function applyMenuSettings(settings){
   // Keep every menu option visible. OFF means the option is temporarily unavailable.
   document.querySelectorAll('.menu-item[data-action]').forEach(item=>{
@@ -4460,9 +4627,10 @@ onValue(ref(db,'announcement'),snap=>{
   const key='bhau_last_announcement_id';const last=localStorage.getItem(key);const id=String(a.id||a.createdAt||a.text);
   if(last!==id){localStorage.setItem(key,id);showAnnouncement(a.text);}
 },error=>console.error('Announcement sync error:',error));
-onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
-new MutationObserver(()=>applyMenuSettings(window.__bhauAdminSettings)).observe(document.documentElement,{childList:true,subtree:true});
+onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
+new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);}).observe(document.documentElement,{childList:true,subtree:true});
 </script>
 
 </body>
 </html>
+```
