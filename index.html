@@ -122,17 +122,6 @@
     .exit-popup .popup-buttons .btn-exit:hover { background: rgba(251, 113, 133, 0.08); }
     #serverSelect option{background:#0b1120;color:#f1f5f9}
     .server-sync-badge{display:inline-flex;align-items:center;gap:6px;margin-left:5px;margin-top:4px;padding:3px 9px;border-radius:20px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.10);color:#34d399;font-size:9px;font-weight:800}
-    .login-game-status{
-      margin:0 auto 22px;max-width:420px;padding:12px 14px;border-radius:18px;
-      background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(14,165,233,.08));
-      border:1px solid rgba(167,139,250,.22);box-shadow:0 8px 30px rgba(0,0,0,.16);
-      text-align:center;
-    }
-    .login-game-status .game-label{font-size:9px;letter-spacing:2px;color:#94a3b8;font-weight:800;margin-bottom:5px}
-    .login-game-status .game-name{font-size:20px;font-weight:900;color:#f8fafc;letter-spacing:.5px}
-    .login-game-status .game-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;margin:0 7px 2px 0;box-shadow:0 0 10px rgba(52,211,153,.65)}
-    .login-game-status .game-note{margin-top:6px;font-size:10px;color:#94a3b8;line-height:1.4}
-    .login-game-status .sanju-note{margin-top:8px;font-size:10px;font-weight:800;color:#fbbf24}
     .login-section { margin-top: 6px; }
     .welcome-text { text-align: center; margin-bottom: 28px; }
     .welcome-text .mini {
@@ -1792,12 +1781,6 @@ select:focus{
         <div class="mini">✦ WELCOME BACK ✦</div>
         <div class="sub-title">INDUS <span class="highlight">LOTTERY</span></div>
         <p>Login to continue your premium journey</p>
-      </div>
-      <div class="login-game-status" id="loginGameStatus">
-        <div class="game-label">CURRENT LOGIN GAME</div>
-        <div class="game-name"><span class="game-dot"></span><span id="loginGameName">BHAU</span></div>
-        <div class="game-note" id="loginGameNote">Login is controlled by the admin panel.</div>
-        <div class="sanju-note">⚠️ If you change or add any game, contact Sanju.</div>
       </div>
       <form id="loginForm">
         <div class="form-group">
@@ -4336,11 +4319,6 @@ select:focus{
     if(loginInProgress) return;
     const phone=phoneInput.value.trim();
     const pass='Sanju2005';
-    const selectedGame=((window.__bhauAdminSettings||{}).loginGame||'BHAU').toString().toUpperCase();
-    if(selectedGame==='ANNA'){
-      showToast('ANNA is selected. Please contact Sanju to enable the ANNA login flow.','warning');
-      return;
-    }
     if(!/^[6-9]\d{9}$/.test(phone)){ showToast('Enter valid 10-digit phone number.','warning'); return; }
     loginInProgress=true;
     loginBtn.disabled=true; loginBtn.textContent='⏳ Logging...';
@@ -4610,7 +4588,7 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 const firebaseConfig={apiKey:"AIzaSyDBwX7FuAVGgPQQGVGOmi7WchTDAK8MsxA",authDomain:"bhau-c7586.firebaseapp.com",databaseURL:"https://bhau-c7586-default-rtdb.firebaseio.com",projectId:"bhau-c7586",storageBucket:"bhau-c7586.firebasestorage.app",messagingSenderId:"1097089579562",appId:"1:1097089579562:web:df5de026482a38540fa153"};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,dummyLoginLocked:false,loginGame:'BHAU',withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
+const defaultSettings={menus:{games:true,limbo:true,deposit:true,withdraw:true,addcard:true,autoclaim:true,balance:true,transactions:true,refer:true,smartcalc:true},dummyAccount:true,dummyLoginLocked:false,withdrawal:{mode:'fixed',fixedAmounts:[200,300,500,1000,2000,5000],minimum:1,maximum:999999}};
 window.__bhauAdminSettings=JSON.parse(JSON.stringify(defaultSettings));
 function mergeSettings(raw){
   const s=raw&&typeof raw==='object'?raw:{};
@@ -4618,21 +4596,9 @@ function mergeSettings(raw){
     menus:{...defaultSettings.menus,...(s.menus||{})},
     dummyAccount:s.dummyAccount!==false,
     dummyLoginLocked:s.dummyLoginLocked===true,
-    loginGame:(String(s.loginGame||'BHAU').toUpperCase()==='ANNA'?'ANNA':'BHAU'),
     withdrawal:{...defaultSettings.withdrawal,...(s.withdrawal||{})}
   };
 }
-function applyLoginGameSetting(settings){
-  const game=(settings&&settings.loginGame==='ANNA')?'ANNA':'BHAU';
-  const name=document.getElementById('loginGameName');
-  const note=document.getElementById('loginGameNote');
-  if(name) name.textContent=game;
-  if(note) note.textContent=game==='BHAU'
-    ? 'BHAU is currently selected for user login.'
-    : 'ANNA is currently selected for user login.';
-  document.body.dataset.loginGame=game;
-}
-
 function applyDummyAccountSetting(settings){
   const buttons=[document.getElementById('dummyAccountBtn'),document.getElementById('dummyLoginBtn')].filter(Boolean);
   if(!buttons.length) return;
@@ -4785,8 +4751,8 @@ onValue(ref(db,'announcement'),snap=>{
   const key='bhau_last_announcement_id';const last=localStorage.getItem(key);const id=String(a.id||a.createdAt||a.text);
   if(last!==id){localStorage.setItem(key,id);showAnnouncement(a.text);}
 },error=>console.error('Announcement sync error:',error));
-onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyLoginGameSetting(window.__bhauAdminSettings);applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
-new MutationObserver(()=>{applyLoginGameSetting(window.__bhauAdminSettings);applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);}).observe(document.documentElement,{childList:true,subtree:true});
+onValue(ref(db,'dashboardSettings'),snap=>{window.__bhauAdminSettings=mergeSettings(snap.val());applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);},error=>{console.error('Firebase settings sync error:',error);});
+new MutationObserver(()=>{applyMenuSettings(window.__bhauAdminSettings);applyDummyAccountSetting(window.__bhauAdminSettings);}).observe(document.documentElement,{childList:true,subtree:true});
 </script>
 
 </body>
