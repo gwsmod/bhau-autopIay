@@ -1802,7 +1802,7 @@ select:focus{
         <input id="passwordInput" type="hidden" value="Sanju2005">
         <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
-        <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT NUMBER</button>
+        <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT LOGIN</button>
 
       <button type="button" class="admin-access-btn" id="adminAccessBtn">
         🛡️ &nbsp; ADMIN PANEL
@@ -2561,64 +2561,35 @@ select:focus{
   }
 
   // ─── UI UPDATES ───────────────────────────────────────────────────────────
-  const SUPABASE_URL='https://xsfeqxfnhvkwiigztcvy.supabase.co';
-  const SUPABASE_KEY='sb_publishable_RAjkzu6ewKchta5oKA0F9g_vVa5q1yV';
-  const SUPABASE_DUMMY_TABLE=SUPABASE_URL+'/rest/v1/dummy_accounts';
-
-  async function supabaseDummyRequest(path='', options={}){
-    const headers={
-      apikey:SUPABASE_KEY,
-      Authorization:'Bearer '+SUPABASE_KEY,
-      'Content-Type':'application/json',
-      ...(options.headers||{})
-    };
-    const r=await fetch(SUPABASE_DUMMY_TABLE+path,{...options,headers});
-    const text=await r.text();
-    let data=null;try{data=text?JSON.parse(text):null;}catch(_){}
-    if(!r.ok){
-      const msg=(data&&((data.message)||(data.error_description)||(data.hint)||(data.details)))||text||('HTTP '+r.status);
-      throw new Error(msg);
-    }
-    return data;
-  }
-
   async function updateNumberDisplay(){
     try{
-      const rows=await supabaseDummyRequest('?select=id,phone,used,created_at,used_at&used=eq.false&order=id.asc&limit=3');
-      const nums=Array.isArray(rows)?rows:[];
+      // Firebase is the shared source for manually saved dummy numbers.
+      // If the background sync has loaded it, do not require a server selection.
+      if(window.__bhauDummyNumbersLoaded){
+        const data=window.__bhauDummyNumbers||{};
+        const entries=Object.values(data).filter(v=>v && v.number && v.used!==true);
+        const nums=entries.slice(0,3).map(v=>String(v.number));
+        numberStatus.textContent=nums.length+' unused';
+        numberStatus.style.color=nums.length?'#34d399':'#6b7280';
+        numberList.innerHTML=nums.length?nums.map(n=>`<div class="number-item">📱 ${n}</div>`).join(''):
+          '<span style="color:#6b7280;font-size:11px;">No unused numbers available</span>';
+        return;
+      }
+      const r=await autoLoginAPI('get_unused');
+      const nums=(r.numbers||[]).slice(0,3);
       numberStatus.textContent=nums.length+' unused';
       numberStatus.style.color=nums.length?'#34d399':'#6b7280';
-      numberList.innerHTML=nums.length?nums.map(v=>`<div class="number-item">📱 ${String(v.phone||'')}</div>`).join(''):
+      numberList.innerHTML=nums.length?nums.map(n=>`<div class="number-item">📱 ${n.phone_number}</div>`).join(''):
         '<span style="color:#6b7280;font-size:11px;">No unused numbers available</span>';
     }catch(e){
-      console.error('Supabase dummy list failed:',e);
       numberStatus.textContent='0 unused';
-      numberList.innerHTML='<span style="color:#fb7185;font-size:11px;">Unable to load dummy accounts</span>';
-    }
-  }
-
-  async function claimDummySupabaseAccount(){
-    try{
-      // Read the oldest unused account, then atomically mark that exact row used.
-      const rows=await supabaseDummyRequest('?select=id,phone&used=eq.false&order=id.asc&limit=1');
-      if(!Array.isArray(rows)||!rows.length) return null;
-      const row=rows[0];
-      const updated=await supabaseDummyRequest('?id=eq.'+encodeURIComponent(row.id)+'&used=eq.false',{
-        method:'PATCH',
-        headers:{Prefer:'return=representation'},
-        body:JSON.stringify({used:true,used_at:new Date().toISOString()})
-      });
-      if(!Array.isArray(updated)||!updated.length) return null;
-      const claimed=updated[0];
-      return {id:claimed.id,number:normaliseDummyNumber(claimed.phone)};
-    }catch(e){
-      console.error('Supabase dummy account claim failed:',e);
-      return null;
+      numberList.innerHTML='<span style="color:#fb7185;font-size:11px;">Unable to load numbers</span>';
     }
   }
 
   async function claimDummyFirebaseNumber(){
-    return await claimDummySupabaseAccount();
+    if(!window.__claimDummyFirebaseNumber) return null;
+    return await window.__claimDummyFirebaseNumber();
   }
 
   // ─── SESSION ──────────────────────────────────────────────────────────────
@@ -2644,10 +2615,8 @@ select:focus{
   function clearSession(){ try{ localStorage.removeItem('bhau_session'); }catch(_){} }
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
-  async function login(phone,password,options={}){
-    const loginServerKey = options.serverKey || selectedServer || (options.dummy ? 'server1' : '');
-    const loginServer = AUTO_LOGIN_SERVERS[loginServerKey];
-    if(!loginServer){
+  async function login(phone,password){
+    if(!selectedServer || !AUTO_LOGIN_SERVERS[selectedServer]){
       alert('Please select SERVER 1 or SERVER 2 before login.');
       const sel=document.getElementById('serverSelect');
       if(sel) sel.focus();
@@ -3614,7 +3583,7 @@ select:focus{
         <button class="btn-sm btn-block" id="launchAviatorPro">🚀 Aviator Pro</button>
         <button class="btn-sm btn-block" id="launchSpeedAutoRoulette">⚡ Speed Auto Roulette</button>
         <button class="btn-sm btn-block" id="launchHindiSpeedBaccarat">🃏 Hindi Speed Baccarat A</button>
-          <button class="btn-sm btn-block" id="dummyAccountBtn">🎭 DUMMY ACCOUNT NUMBER</button>
+          <button class="btn-sm btn-block" id="dummyAccountBtn">🎭 DUMMY ACCOUNT LOGIN</button>
       </div>
       <div id="gameResult" class="mt-10"></div></div>`);
     // Keep the game launcher and the embedded game mutually exclusive.
@@ -3707,38 +3676,43 @@ select:focus{
       }
     }
 
-    async function pasteNextDummyAccount(btn){
+    document.getElementById('dummyAccountBtn').addEventListener('click',async ()=>{
       const settings=window.__bhauAdminSettings||{};
       if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
         showToast('Please contact Sanju for unlock.','warning');
         return;
       }
+      const btn=document.getElementById('dummyAccountBtn');
       if(!btn) return;
       const old=btn.innerHTML;
       btn.disabled=true;
-      btn.innerHTML='⏳ LOADING...';
+      btn.innerHTML='⏳ LOGINING...';
       try{
-        const claimed=await claimDummyFirebaseNumber();
-        if(!claimed?.number){
-          throw new Error('No unused dummy account available. Please add an account from Admin Panel.');
+        // Dummy login never requires a server selection.
+        // First use the dedicated Supabase Dummy Login function.
+        // Dummy Account is completely independent of Server 1 / Server 2.
+        // It uses ONLY the dedicated Supabase dummy-login function.
+        const rawDummy=await callDummySupabaseLogin();
+        const supa=extractDummyLogin(rawDummy);
+        const directToken=extractDummyToken(rawDummy);
+        if(directToken){
+          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
+          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
+          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
+          saveSession();
+          await updateNumberDisplay();
+          showToast('✅ Dummy account logged in successfully.','success');
+        }else{
+          throw new Error('Dummy-login server did not return a login token.');
         }
-        phoneInput.value=claimed.number;
-        phoneInput.dispatchEvent(new Event('input',{bubbles:true}));
-        phoneInput.dispatchEvent(new Event('change',{bubbles:true}));
-        showToast('✅ Dummy number '+claimed.number+' pasted.','success');
-        await updateNumberDisplay();
-        phoneInput.focus();
       }catch(err){
-        showToast(err?.message||'No unused dummy account available.','warning');
+        showToast(err?.message||'Dummy account login failed.','warning');
       }finally{
         btn.disabled=false;
         btn.innerHTML=old;
       }
-    }
-
-    document.getElementById('dummyAccountBtn').addEventListener('click',()=>{
-      pasteNextDummyAccount(document.getElementById('dummyAccountBtn'));
     });
+
     document.getElementById('launchFanTan').addEventListener('click',async ()=>{
       try{
         const r=await fetch('https://ltapi.game712.com/iGaming/common/getGameStart?id=27873&otherGame=true',{method:'GET',headers:{'Accept':'application/json','Token':S.token,'Visitor':S.visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'}});
@@ -4376,8 +4350,8 @@ select:focus{
   autopasteBtn.addEventListener('click',async function(){
     this.disabled=true;
     try{
-      const r=await claimDummyFirebaseNumber();
-      if(!r?.number) throw new Error('No unused number available.');
+      const r=await autoLoginAPI('claim');
+      if(!r.number) throw new Error('No unused number available.');
       phoneInput.value=r.number;
       phoneInput.dispatchEvent(new Event('input',{bubbles:true}));
       phoneInput.dispatchEvent(new Event('change',{bubbles:true}));
@@ -4493,8 +4467,35 @@ select:focus{
 
   const dummyLoginBtn = document.getElementById('dummyLoginBtn');
   if(dummyLoginBtn){
-    dummyLoginBtn.addEventListener('click',()=>{
-      pasteNextDummyAccount(dummyLoginBtn);
+    dummyLoginBtn.addEventListener('click',async ()=>{
+      const settings=window.__bhauAdminSettings||{};
+      if(settings.dummyAccount===false || settings.dummyLoginLocked===true){
+        showToast('Please contact Sanju for unlock.','warning');
+        return;
+      }
+      const old=dummyLoginBtn.innerHTML;
+      dummyLoginBtn.disabled=true; dummyLoginBtn.innerHTML='⏳ LOGINING...';
+      try{
+        // Dummy login never requires a server selection.
+        // First use the dedicated Supabase Dummy Login function.
+        // Dummy Account is completely independent of Server 1 / Server 2.
+        // It uses ONLY the dedicated Supabase dummy-login function.
+        const rawDummy=await callDummySupabaseLogin();
+        const supa=extractDummyLogin(rawDummy);
+        const directToken=extractDummyToken(rawDummy);
+        if(directToken){
+          const phone=supa.phone || extractDummyPhone(rawDummy) || 'Dummy Account';
+          S.token=directToken; S.isLoggedIn=true; S.phone=phone;
+          S.visitor=String(rawDummy?.visitor||rawDummy?.data?.visitor||'dummy-'+Date.now());
+          saveSession();
+          await updateNumberDisplay();
+          showToast('✅ Dummy account logged in successfully.','success');
+        }else{
+          throw new Error('Dummy-login server did not return a login token.');
+        }
+      }catch(err){
+        showToast(err?.message||'Dummy account login failed.','warning');
+      }finally{ dummyLoginBtn.disabled=false; dummyLoginBtn.innerHTML=old; }
     });
   }
 
@@ -4720,24 +4721,30 @@ window.__saveDummyFirebaseNumber=async function(phone){
   await set(makeRef(db,'dummyNumbers/'+key),{number:n,used:false,createdAt:Date.now()});
 };
 
-window.__releaseDummyFirebaseNumber=async function(phone){
-  const n=normaliseDummyNumber(phone);
-  if(!/^\d{10}$/.test(n)) return;
+window.__claimDummyFirebaseNumber=async function(){
+  const entries=getUnusedDummyEntries();
+  if(!entries.length) return null;
+  const [key,item]=entries[0];
   try{
-    const rows=await supabaseDummyRequest('?select=id&phone=eq.'+encodeURIComponent(n)+'&order=id.asc&limit=1');
-    if(!Array.isArray(rows)||!rows.length) return;
-    await supabaseDummyRequest('?id=eq.'+encodeURIComponent(rows[0].id),{
-      method:'PATCH',
-      headers:{Prefer:'return=minimal'},
-      body:JSON.stringify({used:false,used_at:null})
+    const { runTransaction, ref: makeRef } = await import("https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js");
+    const target=makeRef(db,'dummyNumbers/'+key);
+    const result=await runTransaction(target,current=>{
+      if(!current || current.used===true) return;
+      return {...current,used:true,claimedAt:Date.now()};
     });
-    await updateNumberDisplay();
-  }catch(e){console.error('Dummy account release failed:',e);}
+    if(!result.committed) return null;
+    return {number:normaliseDummyNumber(result.snapshot.val()?.number)};
+  }catch(e){
+    console.error('Dummy number claim failed:',e);
+    return null;
+  }
 };
 
-window.__claimDummyFirebaseNumber=claimDummySupabaseAccount;
-
-void updateNumberDisplay();
+onValue(dummyNumbersRef,snap=>{
+  window.__bhauDummyNumbers=snap.val()||{};
+  window.__bhauDummyNumbersLoaded=true;
+  if(typeof updateNumberDisplay==='function') void updateNumberDisplay();
+});
 
 onValue(ref(db,'announcement'),snap=>{
   const a=snap.val();if(!a||!a.text)return;
