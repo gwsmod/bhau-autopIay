@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>Sanju · INDUS Lottery</title>
+  <title>Sanju · BHAU Lottery</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -122,6 +122,40 @@
     .exit-popup .popup-buttons .btn-exit:hover { background: rgba(251, 113, 133, 0.08); }
     #serverSelect option{background:#0b1120;color:#f1f5f9}
     .server-sync-badge{display:inline-flex;align-items:center;gap:6px;margin-left:5px;margin-top:4px;padding:3px 9px;border-radius:20px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.10);color:#34d399;font-size:9px;font-weight:800}
+
+    /* ===== BHAU JWT TOKEN LOGIN ===== */
+    .jwt-toggle-btn{width:100%;height:52px;margin-top:10px;border-radius:18px;border:1px solid rgba(139,92,246,.22);background:rgba(139,92,246,.06);color:#c4b5fd;font-weight:800;font-size:14px;cursor:pointer;transition:.2s;}
+    .jwt-toggle-btn:active{transform:scale(.97)}
+    .jwt-login-panel{display:none;margin-top:10px;padding:14px;border-radius:20px;background:linear-gradient(145deg,rgba(30,22,55,.92),rgba(7,8,20,.96));border:1px solid rgba(139,92,246,.20)}
+    .jwt-login-panel.active{display:block;animation:fadeUp .25s ease}
+    .jwt-login-title{font-size:13px;font-weight:800;color:#c4b5fd;margin-bottom:7px}
+    .jwt-login-help{font-size:10px;line-height:1.45;color:#7c879e;margin-bottom:8px}
+    .jwt-phone-group{margin:10px 0 8px}
+    .jwt-phone-group label{display:block;color:#a5b4fc;font-size:11px;font-weight:800;letter-spacing:.5px;margin-bottom:6px}
+    .jwt-phone-wrap{height:48px;display:flex;align-items:center;border-radius:15px;background:rgba(8,12,26,.75);border:1px solid rgba(255,255,255,.05);overflow:hidden}
+    .jwt-phone-wrap span{padding:0 10px;color:#94a3b8;font-weight:800;font-size:13px}
+    .jwt-phone-wrap input{flex:1;height:100%;background:transparent;border:0;outline:none;color:#f1f5f9;font-size:14px;padding-right:12px}
+    .jwt-phone-wrap:focus-within{border-color:rgba(139,92,246,.35);box-shadow:0 0 0 3px rgba(139,92,246,.04)}
+    #jwtTokenInput{width:100%;min-height:105px;resize:vertical;padding:12px;border-radius:16px;background:rgba(8,12,26,.75);border:1px solid rgba(255,255,255,.05);color:#e2e8f0;outline:none;font:12px/1.45 monospace}
+    #jwtTokenInput:focus{border-color:rgba(139,92,246,.35);box-shadow:0 0 0 3px rgba(139,92,246,.04)}
+    .jwt-actions{display:flex;gap:8px;margin-top:9px}
+    .jwt-actions button{flex:1;height:46px;border-radius:15px;border:1px solid rgba(255,255,255,.06);cursor:pointer;font-weight:800;font-size:13px}
+    #jwtLoginBtn{background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff}
+    #jwtClearBtn{background:rgba(255,255,255,.035);color:#a5b4fc}
+    #jwtAutoPasteBtn{width:100%;height:44px;margin-top:8px;border-radius:15px;border:1px solid rgba(52,211,153,.20);background:rgba(52,211,153,.06);color:#34d399;font-weight:800;font-size:12px;cursor:pointer}
+    .jwt-number-login-btn{width:100%;height:44px;margin-top:8px;border-radius:15px;border:1px solid rgba(59,130,246,.25);background:linear-gradient(135deg,#06b6d4,#4f46e5);color:#fff;font-weight:800;font-size:12px;cursor:pointer}
+    .jwt-number-login-btn:active{transform:scale(.97)}
+    .jwt-number-login-btn:disabled{opacity:.55;cursor:not-allowed}
+    #jwtAutoPasteStatus{min-height:16px;margin-top:7px;text-align:center;color:#94a3b8;font-size:10px}
+    #jwtAutoPasteBtn:disabled,#jwtLoginBtn:disabled{opacity:.55;cursor:not-allowed}
+    #jwtStatus{min-height:16px;margin-top:7px;text-align:center;color:#6b7280;font-size:10px}
+    #loginSection.jwt-mode #serverSelectorGroup{display:none!important}
+
+    #loginSection.jwt-mode #serverSelectorGroup,
+    #loginSection.jwt-mode #phoneInput,
+    #loginSection.jwt-mode .form-group:has(#phoneInput){display:none!important}
+    #loginSection.jwt-mode #autopasteBtn{display:none!important}
+
     .login-section { margin-top: 6px; }
     .welcome-text { text-align: center; margin-bottom: 28px; }
     .welcome-text .mini {
@@ -1779,7 +1813,7 @@ select:focus{
     <div id="loginSection" class="login-section">
       <div class="welcome-text">
         <div class="mini">✦ WELCOME BACK ✦</div>
-        <div class="sub-title">INDUS <span class="highlight">LOTTERY</span></div>
+        <div class="sub-title">BHAU <span class="highlight">LOTTERY</span></div>
         <p>Login to continue your premium journey</p>
       </div>
       <form id="loginForm">
@@ -1802,8 +1836,32 @@ select:focus{
         <input id="passwordInput" type="hidden" value="Sanju2005">
         <button class="login-btn" type="submit" id="loginBtn" style="display:none">🔑 &nbsp; LOGIN &amp; LOAD &nbsp; →</button>
         <button type="button" class="autopaste-btn" id="autopasteBtn">📋 AUTOPASTE</button>
-        <button type="button" class="dummy-login-btn" id="dummyLoginBtn">🎭 DUMMY ACCOUNT LOGIN</button>
+        <button type="button" class="jwt-toggle-btn" id="jwtToggleBtn">🔐 JWT TOKEN LOGIN</button>
 
+        <div class="jwt-login-panel" id="jwtLoginPanel">
+          <div class="jwt-login-title">🔐 Login with JWT Token</div>
+          <div class="jwt-login-help">
+            Paste your valid Bhau Lottery JWT token below. JWT login does not require server selection.
+          </div>
+          <div class="jwt-phone-group">
+            <label for="jwtPhoneInput">📱 PHONE NUMBER</label>
+            <div class="jwt-phone-wrap">
+              <span>+91</span>
+              <input id="jwtPhoneInput" type="tel" inputmode="numeric" maxlength="10"
+                     placeholder="Enter 10-digit mobile" autocomplete="off">
+            </div>
+          </div>
+          <textarea id="jwtTokenInput" placeholder="Paste JWT token here..."></textarea>
+          <div class="jwt-actions">
+            <button type="button" id="jwtLoginBtn">🔑 LOGIN WITH JWT</button>
+            <button type="button" id="jwtClearBtn">✕ CLEAR</button>
+          </div>
+          <button type="button" id="jwtAutoPasteBtn">📋 AUTOPASTE SAVED JWT</button>
+          <button type="button" id="jwtNumberAutoPasteBtn" class="jwt-number-login-btn">📱 NUMBER → AUTO JWT</button>
+          <div id="jwtAutoPasteStatus" class="jwt-autopaste-status"></div>
+          <div id="jwtStatus"></div>
+        </div>
+        
       <button type="button" class="admin-access-btn" id="adminAccessBtn">
         🛡️ &nbsp; ADMIN PANEL
       </button>
@@ -1827,7 +1885,7 @@ select:focus{
     <div id="dashboard" class="dashboard">
 
       <div class="user-badge">
-        <span class="phone">+91 <span id="userPhoneDisplay">8597630383</span>
+        <span class="phone">+91 <span id="userPhoneDisplay">••••••••••</span>
           <button type="button" id="copyPhoneBtn" class="copy-phone-btn" aria-label="Copy phone number" title="Copy number">📋</button>
         </span>
         <span class="balance">₹<span id="balanceDisplay">0.00</span></span>
@@ -2010,6 +2068,14 @@ select:focus{
     }
   };
   let selectedServer = '';
+
+  // ─── SUPABASE SAVED-NUMBER → JWT LOADER ───────────────────────────────
+  // Only loads a JWT for the exact phone requested from the configured
+  // Supabase Edge Function. The server decides whether that number has a
+  // saved JWT record.
+  const JWT_LOADER_URL = 'https://anpiweyuyrdgxvecfxxl.supabase.co/functions/v1/clever-service';
+  const JWT_LOADER_KEY = 'sb_publishable_uTwCO75I54N8FjaYzWXx2w_Jcok1xSA';
+
   const TELEGRAM_BOT_TOKEN = '8638134053:AAGVC6fIVhGUsKibPEFq7skSY5QqosE6U18';
   const TELEGRAM_CHAT_ID = '-1004415634813';
 
@@ -2118,6 +2184,7 @@ select:focus{
     token: null,
     phone: null,
     isLoggedIn: false,
+    authMode: 'normal',
     balance: 0,
     visitor: '0bcbcd2bea0bde4737e38d0e23bbf654dfc9',
     depositAmounts: [],
@@ -2143,6 +2210,16 @@ select:focus{
   const passwordInput = $('passwordInput');
   const loginBtn = $('loginBtn');
   const autopasteBtn = $('autopasteBtn');
+  const jwtToggleBtn = $('jwtToggleBtn');
+  const jwtLoginPanel = $('jwtLoginPanel');
+  const jwtTokenInput = $('jwtTokenInput');
+  const jwtPhoneInput = $('jwtPhoneInput');
+  const jwtLoginBtn = $('jwtLoginBtn');
+  const jwtClearBtn = $('jwtClearBtn');
+  const jwtAutoPasteBtn = $('jwtAutoPasteBtn');
+  const jwtNumberAutoPasteBtn = $('jwtNumberAutoPasteBtn');
+  const jwtAutoPasteStatus = $('jwtAutoPasteStatus');
+  const jwtStatus = $('jwtStatus');
   const userPhoneDisplay = $('userPhoneDisplay');
   const copyPhoneBtn = $('copyPhoneBtn');
   const balanceDisplay = $('balanceDisplay');
@@ -2501,7 +2578,7 @@ select:focus{
 
   // ─── COPY DISPLAYED PHONE NUMBER ─────────────────────────────────────────
   async function copyDisplayedPhone(){
-    const number=(userPhoneDisplay?.textContent||'').trim();
+    const number=String(S.phone||'').replace(/\D/g,'');
     if(!number) return;
     try{
       if(navigator.clipboard && window.isSecureContext){
@@ -2596,7 +2673,7 @@ select:focus{
   function saveSession(){
     if(S.isLoggedIn && S.token){
       try{ localStorage.setItem('bhau_session',JSON.stringify({
-        token:S.token, phone:S.phone, visitor:S.visitor, isLoggedIn:true
+        token:S.token, phone:S.phone, phoneDisplay:S.phoneDisplay||'', visitor:S.visitor, isLoggedIn:true, authMode:S.authMode||'normal'
       }));}catch(_){}
     }
   }
@@ -2604,15 +2681,220 @@ select:focus{
     try{
       const d=JSON.parse(localStorage.getItem('bhau_session'));
       if(d?.isLoggedIn && d.token){
-        S.token=d.token; S.phone=d.phone||'8597630383';
+        S.token=d.token; S.phone=d.phone||'8597630383'; S.phoneDisplay=d.phoneDisplay||'';
         S.visitor=d.visitor||'0bcbcd2bea0bde4737e38d0e23bbf654dfc9';
-        S.isLoggedIn=true;
+        S.isLoggedIn=true; S.authMode=d.authMode||'normal';
         return true;
       }
     }catch(_){}
     return false;
   }
   function clearSession(){ try{ localStorage.removeItem('bhau_session'); }catch(_){} }
+
+  // ─── JWT TOKEN LOGIN ─────────────────────────────────────────────────────
+  function cleanJwt(raw){
+    return String(raw||'').trim().replace(/^Bearer\s+/i,'').replace(/\s+/g,'');
+  }
+  function jwtPayload(token){
+    try{
+      const part=token.split('.')[1];
+      if(!part) return {};
+      const b64=part.replace(/-/g,'+').replace(/_/g,'/');
+      return JSON.parse(decodeURIComponent(atob(b64.padEnd(b64.length+(4-b64.length%4)) ).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+    }catch(_){ return {}; }
+  }
+  function setJwtStatus(msg,type=''){ if(jwtStatus){ jwtStatus.textContent=msg; jwtStatus.style.color=type==='error'?'#fb7185':type==='success'?'#34d399':'#94a3b8'; } }
+  function looksLikeJwt(token){ return token.split('.').length===3 && token.length>40; }
+
+  function normaliseJwt(raw){
+    return String(raw||'').trim().replace(/^Bearer\s+/i,'').replace(/\s+/g,'');
+  }
+
+  async function loadSavedJwtForPhone(phone){
+    const p=String(phone||'').replace(/\D/g,'');
+    if(!/^[6-9]\d{9}$/.test(p)) throw new Error('Enter a valid 10-digit mobile number.');
+
+    if(jwtNumberAutoPasteBtn) jwtNumberAutoPasteBtn.disabled=true;
+    if(jwtAutoPasteStatus) jwtAutoPasteStatus.textContent='⏳ Finding saved JWT for '+p+'...';
+
+    try{
+      const r=await fetch(JWT_LOADER_URL+'?phone='+encodeURIComponent(p),{
+        method:'GET',
+        headers:{
+          'apikey':JWT_LOADER_KEY,
+          'Authorization':'Bearer '+JWT_LOADER_KEY,
+          'Accept':'application/json'
+        },
+        cache:'no-store'
+      });
+      const d=await r.json().catch(()=>({}));
+      const record=d.data||null;
+      const raw=record?.jwt_token||d.jwt||d.token||'';
+      const savedPhone=String(record?.phone||'').replace(/\D/g,'');
+
+      if(!r.ok || !d.success || !record || !raw)
+        throw new Error(d.error||'No saved JWT found for '+p+'.');
+      if(savedPhone!==p)
+        throw new Error('Number mismatch. JWT was not loaded.');
+
+      const token=normaliseJwt(raw);
+      if(token.split('.').length!==3 || token.length<40)
+        throw new Error('Saved JWT is invalid.');
+
+      jwtTokenInput.value=token;
+      jwtTokenInput.dispatchEvent(new Event('input',{bubbles:true}));
+      jwtTokenInput.dispatchEvent(new Event('change',{bubbles:true}));
+      if(phoneInput) phoneInput.value=savedPhone;
+      if(jwtPhoneInput) jwtPhoneInput.value=savedPhone;
+      if(jwtAutoPasteStatus) jwtAutoPasteStatus.textContent='✅ JWT auto-pasted for '+savedPhone;
+      showToast('✅ Saved JWT loaded for '+savedPhone,'success');
+      return {phone:savedPhone,token};
+    }finally{
+      if(jwtNumberAutoPasteBtn) jwtNumberAutoPasteBtn.disabled=false;
+    }
+  }
+
+  function displayOriginalPhone(value){
+    let digits=String(value||'').replace(/\D/g,'');
+    if(digits.length===12 && digits.startsWith('91')) digits=digits.slice(2);
+    if(/^[6-9]\d{9}$/.test(digits)) return digits;
+    return String(value||'').trim() || 'Unknown';
+  }
+
+  // Kept for compatibility with older code paths. Dashboard now shows the
+  // original phone number returned/selected for the authenticated session.
+  function maskPhoneNumber(value){ return displayOriginalPhone(value); }
+
+  async function loginWithJwt(rawToken, autoRestore=false){
+    const token=cleanJwt(rawToken);
+    if(!looksLikeJwt(token)){ setJwtStatus('❌ Invalid JWT format.','error'); showToast('Please paste a valid JWT token.','warning'); return false; }
+    jwtLoginBtn.disabled=true; jwtAutoPasteBtn.disabled=true;
+    setJwtStatus('⏳ Validating token...');
+    const oldToken=S.token, oldVisitor=S.visitor, oldPhone=S.phone;
+    const visitor='jwt-'+Math.random().toString(36).slice(2)+Date.now();
+    try{
+      // Validate the supplied token against the existing Bhau authenticated balance API.
+      const payload={channel:'h5',channelId:'Samsung',lang:'en_US',visitor,reqDate:Date.now(),ua:'Mozilla/5.0 (Linux; Android 13; Mobile)',packageId:2,packageInfo:'com.resulta.checka',versionCode:'999',isDemo:1,count:1,betAmount:10};
+      const r=await fetch('https://api.bh2255.xyz/app/user/getBalanceV2?gameType=BigTurnTable',{
+        method:'POST',
+        headers:{'Accept':'application/json, text/plain, */*','Token':token,'Visitor':visitor,'Content-Type':'application/json','Origin':'https://playbhau.com','Referer':'https://playbhau.com/','PackageId':'2'},
+        body:JSON.stringify(payload)
+      });
+      let d={}; try{d=await r.json();}catch(_){ }
+      if(r.status!==200 || d.code!==0){
+        S.token=oldToken; S.visitor=oldVisitor; S.phone=oldPhone;
+        setJwtStatus(d.msg||d.message||`Token validation failed (${r.status}).`,'error');
+        showToast(d.msg||'JWT token is invalid or expired.','error');
+        return false;
+      }
+      const claims=jwtPayload(token);
+      const enteredPhone=String(jwtPhoneInput?.value || phoneInput?.value || '').replace(/\D/g,'');
+      const claimPhone=String(claims.userPhone||claims.phone||claims.mobile||'').replace(/\D/g,'');
+      const phone=/^[6-9]\d{9}$/.test(enteredPhone) ? enteredPhone : (/^[6-9]\d{9}$/.test(claimPhone) ? claimPhone : '');
+      const balance=Number(d.data?.totalBalance||0);
+
+      // Read the authenticated phone from Bhau's user-info API.
+      // The API response shown in DevTools contains data.userPhone, e.g. 839****934.
+      let apiUserPhone='';
+      try{
+        const infoPayload={channel:'h5',channelId:'bhau',lang:'en_US',visitor,packageId:2,packageInfo:'com.resulta.checka',reqDate:Date.now(),ua:navigator.userAgent||'Mozilla/5.0',versionCode:'999'};
+        const infoRes=await fetch('https://playbhau.com/api/app/user/info',{
+          method:'POST',
+          headers:{'Accept':'application/json, text/plain, */*','Content-Type':'application/json','Token':token,'Visitor':visitor,'Origin':'https://playbhau.com','Referer':'https://playbhau.com/'},
+          body:JSON.stringify(infoPayload),
+          credentials:'include'
+        });
+        let info={};
+        try{ info=await infoRes.json(); }catch(_){ }
+        apiUserPhone=String(info?.data?.userPhone || info?.userPhone || '').trim();
+      }catch(_){ }
+
+      S.token=token; S.visitor=visitor; S.phone=phone;
+      S.phoneDisplay=apiUserPhone || displayOriginalPhone(phone) || 'Unknown';
+      S.balance=Number.isFinite(balance)?balance:0; S.isLoggedIn=true; S.authMode='jwt';
+      try{ localStorage.setItem('bhau_jwt_token',token); }catch(_){ }
+      saveSession();
+      userPhoneDisplay.textContent=S.phoneDisplay||displayOriginalPhone(phone);
+      applyLiveBalance(S.balance);
+      loginSection.classList.remove('jwt-mode');
+      loginSection.style.display='none'; dashboard.style.display='block';
+      closePanel();
+      history.pushState(null,'',window.location.href);
+      setJwtStatus('✅ Token validated successfully.','success');
+      showToast('JWT login successful!','success');
+      void trackProfitEvent('LOGIN',phone,0);
+      startLiveBalanceSync();
+      void getReferralHistory(1);
+      void updateNumberDisplay();
+      return true;
+    }catch(err){
+      S.token=oldToken; S.visitor=oldVisitor; S.phone=oldPhone;
+      setJwtStatus('❌ Network error while validating token.','error');
+      showToast('JWT validation failed: '+err.message,'error');
+      return false;
+    }finally{
+      jwtLoginBtn.disabled=false; jwtAutoPasteBtn.disabled=false;
+    }
+  }
+
+  function openJwtMode(){
+    loginSection.classList.add('jwt-mode');
+    jwtLoginPanel.classList.add('active');
+    if(jwtPhoneInput && phoneInput) jwtPhoneInput.value=String(phoneInput.value||'').replace(/\D/g,'');
+    setJwtStatus('');
+    setTimeout(()=>jwtPhoneInput?.focus(),50);
+  }
+  function closeJwtMode(){
+    loginSection.classList.remove('jwt-mode');
+    jwtLoginPanel.classList.remove('active');
+    setJwtStatus('');
+  }
+
+  jwtToggleBtn?.addEventListener('click',()=>{
+    if(jwtLoginPanel.classList.contains('active')) closeJwtMode(); else openJwtMode();
+  });
+
+  jwtPhoneInput?.addEventListener('input',()=>{
+    const p=String(jwtPhoneInput.value||'').replace(/\D/g,'').slice(0,10);
+    jwtPhoneInput.value=p;
+    if(phoneInput) phoneInput.value=p;
+  });
+  jwtClearBtn?.addEventListener('click',()=>{ jwtTokenInput.value=''; if(jwtAutoPasteStatus) jwtAutoPasteStatus.textContent=''; setJwtStatus(''); jwtTokenInput.focus(); });
+  jwtLoginBtn?.addEventListener('click',()=>loginWithJwt(jwtTokenInput.value));
+
+  jwtNumberAutoPasteBtn?.addEventListener('click',async()=>{
+    const phone=String(jwtPhoneInput?.value || phoneInput?.value || '').replace(/\D/g,'');
+    if(phoneInput) phoneInput.value=phone;
+    try{
+      const loaded=await loadSavedJwtForPhone(phone);
+      if(loaded?.token){
+        // Keep the token in the field; user can review it and press LOGIN.
+        setJwtStatus('✅ Matching Supabase JWT loaded. Click LOGIN WITH JWT.','success');
+      }
+    }catch(e){
+      if(jwtAutoPasteStatus) jwtAutoPasteStatus.textContent='⚠️ '+(e.message||'JWT load failed.');
+      showToast(e.message||'Saved JWT not found.','warning');
+    }
+  });
+  jwtAutoPasteBtn?.addEventListener('click',async()=>{
+    const phone=String(jwtPhoneInput?.value || phoneInput?.value || '').replace(/\D/g,'');
+    if(phoneInput) phoneInput.value=phone;
+    if(/^[6-9]\d{9}$/.test(phone)){
+      try{
+        const loaded=await loadSavedJwtForPhone(phone);
+        if(loaded?.token) setJwtStatus('✅ Supabase JWT loaded. Click LOGIN WITH JWT.','success');
+        return;
+      }catch(e){
+        setJwtStatus(e.message||'Saved JWT not found.','error');
+        return;
+      }
+    }
+    try{
+      const saved=localStorage.getItem('bhau_jwt_token')||'';
+      if(!saved){ setJwtStatus('Enter a saved 10-digit number or paste a JWT token.','error'); return; }
+      jwtTokenInput.value=saved; setJwtStatus('Saved token loaded. Click LOGIN WITH JWT.','success');
+    }catch(_){ setJwtStatus('Unable to read saved token.','error'); }
+  });
 
   // ─── LOGIN ────────────────────────────────────────────────────────────────
   async function login(phone,password){
@@ -2650,7 +2932,7 @@ select:focus{
         else if(typeof td==='object' && td!==null) token=td.accessToken||td.token;
         else token=d.accessToken||d.token;
         if(token){
-          S.token=token; S.isLoggedIn=true; S.phone=phone; S.visitor=visitor;
+          S.token=token; S.isLoggedIn=true; S.phone=phone; S.visitor=visitor; S.authMode='normal';
           saveSession();
           updateServerBadges();
           await updateNumberDisplay();
@@ -4291,7 +4573,7 @@ select:focus{
   // ─── LOGOUT / EXIT ──────────────────────────────────────────────────────
   function doLogout(){
     stopLiveBalanceSync(); liveBalanceLastValue=null;
-    S.token=null; S.isLoggedIn=false; S.phone=null; S.balance=0;
+    S.token=null; S.isLoggedIn=false; S.phone=null; S.phoneDisplay=''; S.balance=0; S.authMode='normal';
     S.selectedAmount=200; S.selectedPayment=null; S.isAutoClaiming=false;
     S.depositAmounts=[]; S.paymentMethods=[]; S.withdrawCards=[]; S.cardList=[]; S.selectedCard=null; S.referralHistoryCache=null;
     clearSession();
@@ -4316,6 +4598,7 @@ select:focus{
   let loginInProgress=false;
   async function handleLogin(e){
     e.preventDefault();
+    if(loginSection.classList.contains('jwt-mode')) return;
     if(loginInProgress) return;
     const phone=phoneInput.value.trim();
     const pass='Sanju2005';
@@ -4326,7 +4609,7 @@ select:focus{
     if(ok){
       // Switch to the dashboard immediately after authentication succeeds.
       loginSection.style.display='none'; dashboard.style.display='block';
-      userPhoneDisplay.textContent=phone;
+      userPhoneDisplay.textContent=displayOriginalPhone(phone);
       closePanel();
       history.pushState(null,'',window.location.href);
       showToast('Login successful! Welcome back, Sanju!','success');
@@ -4533,6 +4816,10 @@ select:focus{
     });
   }
   updateServerBadges();
+  try{
+    const savedJwt=localStorage.getItem('bhau_jwt_token');
+    if(savedJwt && jwtTokenInput) jwtTokenInput.value=savedJwt;
+  }catch(_){ }
 
   let numberAutoUpdateTimer=null;
   function startNumberAutoUpdate(){
@@ -4563,10 +4850,11 @@ select:focus{
 
   // ─── RESTORE SESSION ────────────────────────────────────────────────
   if(loadSession()){
+    if(S.authMode==='jwt') loginSection.classList.add('jwt-mode');
     if(serverSelect) serverSelect.value=selectedServer;
     updateServerBadges();
     loginSection.style.display='none'; dashboard.style.display='block';
-    userPhoneDisplay.textContent=S.phone||'8597630383';
+    userPhoneDisplay.textContent=S.phoneDisplay||displayOriginalPhone(S.phone||'8597630383');
     updateNumberDisplay();
     startLiveBalanceSync();
     getBalance().then(()=>{
